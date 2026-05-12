@@ -41,29 +41,6 @@ public static class PathHelper
     public const string DefaultTemplate = "{artist}/{album}/{track} - {title}";
 
     /// <summary>
-    /// Builds the output path for a downloaded track following the Artist/Album/Track structure.
-    /// Legacy overload — delegates to the template-based version with the default template.
-    /// </summary>
-    /// <param name="downloadPath">Base download directory path.</param>
-    /// <param name="artist">Artist name (will be sanitized).</param>
-    /// <param name="album">Album name (will be sanitized).</param>
-    /// <param name="title">Track title (will be sanitized).</param>
-    /// <param name="trackNumber">Optional track number for prefix.</param>
-    /// <param name="extension">File extension (e.g., ".flac", ".mp3").</param>
-    /// <returns>Full path for the track file.</returns>
-    public static string BuildTrackPath(string downloadPath, string artist, string album, string title, int? trackNumber, string extension)
-    {
-        var song = new Song
-        {
-            Title = title,
-            Artist = artist,
-            Album = album,
-            Track = trackNumber
-        };
-        return BuildTrackPath(downloadPath, song, extension, DefaultTemplate, null);
-    }
-
-    /// <summary>
     /// Builds the output path for a downloaded track using a configurable folder template.
     /// The template is split on '/' — segments before the last become folders (sanitized via
     /// <see cref="SanitizeFolderName"/>), the last segment becomes the file name (sanitized via
@@ -77,14 +54,12 @@ public static class PathHelper
     /// <returns>Full path for the track file.</returns>
     public static string BuildTrackPath(string downloadPath, Song song, string extension, string template, string? downloadedQuality)
     {
-        var artistForPath = song.AlbumArtist ?? song.Artist;
-
         var segments = template.Split('/');
         var result = downloadPath;
 
         for (var i = 0; i < segments.Length; i++)
         {
-            var segment = ReplacePlaceholders(segments[i], song, artistForPath, downloadedQuality);
+            var segment = ReplacePlaceholders(segments[i], song, downloadedQuality);
             var isFileName = i == segments.Length - 1;
 
             if (isFileName)
@@ -105,37 +80,57 @@ public static class PathHelper
     /// <summary>
     /// Replaces template placeholders with actual metadata values.
     /// </summary>
-    internal static string ReplacePlaceholders(string segment, Song song, string artistForPath, string? downloadedQuality)
+    internal static string ReplacePlaceholders(string segment, Song song, string? downloadedQuality)
     {
-        var result = segment
-            .Replace("{artist}", artistForPath)
-            .Replace("{album}", song.Album)
-            .Replace("{title}", song.Title);
+        // {artist} - album artist, "Unknown" if null
+        var artistValue = song.AlbumArtist is not null
+            ? song.AlbumArtist
+            : "Unknown";
+
+        // {album} - album title, "Unknown" if null
+        var albumValue = song.AlbumTitle is not null
+            ? song.AlbumTitle
+            : "Unknown";
 
         // {track} — zero-padded track number, empty string if null
-        var trackValue = song.Track.HasValue ? $"{song.Track.Value:D2}" : "";
-        result = result.Replace("{track}", trackValue);
+        var trackValue = song.AlbumTrackNr is not null
+            ? $"{song.AlbumTrackNr.Value:D2}"
+            : "";
 
         // {disc} — disc number, "Unknown" if null
-        var discValue = song.DiscNumber.HasValue ? song.DiscNumber.Value.ToString() : "Unknown";
-        result = result.Replace("{disc}", discValue);
-
-        // {year} — year, "Unknown" if null
-        var yearValue = song.Year.HasValue ? song.Year.Value.ToString() : "Unknown";
-        result = result.Replace("{year}", yearValue);
+        var discValue = song.AlbumDiscNr is not null
+            ? song.AlbumDiscNr.Value.ToString()
+            : "Unknown";
 
         // {genre} — genre, "Unknown" if null/empty
-        var genreValue = string.IsNullOrWhiteSpace(song.Genre) ? "Unknown" : song.Genre;
-        result = result.Replace("{genre}", genreValue);
+        var genreValue = song.Genre is not null
+            ? song.Genre
+            : "Unknown";
+
+        // {year} — year, "Unknown" if null
+        var yearValue = song.ReleaseYear is not null
+            ? song.ReleaseYear.Value.ToString()
+            : "Unknown";
 
         // {quality} — downloaded quality, "Unknown" if null/empty
-        var qualityValue = string.IsNullOrWhiteSpace(downloadedQuality) ? "Unknown" : downloadedQuality;
-        result = result.Replace("{quality}", qualityValue);
+        var qualityValue = !string.IsNullOrWhiteSpace(downloadedQuality)
+            ? downloadedQuality
+            : "Unknown";
+
+        var result = segment
+            .Replace("{title}", song.Title)
+            .Replace("{artist}", artistValue)
+            .Replace("{album}", albumValue)
+            .Replace("{track}", trackValue)
+            .Replace("{disc}", discValue)
+            .Replace("{genre}", genreValue)
+            .Replace("{year}", yearValue)
+            .Replace("{quality}", qualityValue);
 
         // Clean up artifacts from empty placeholders:
         // If {track} was empty, we might have leftover " - " at the start of the segment
         // e.g., template "{track} - {title}" with no track → " - My Song" → "My Song"
-        if (!song.Track.HasValue)
+        if (song.AlbumTrackNr is null)
         {
             result = result.TrimStart(' ', '-').TrimStart();
         }

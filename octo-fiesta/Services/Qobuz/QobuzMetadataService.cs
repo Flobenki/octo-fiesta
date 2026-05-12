@@ -5,6 +5,7 @@ using octo_fiesta.Models.Search;
 using octo_fiesta.Models.Subsonic;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Components;
 
 namespace octo_fiesta.Services.Qobuz;
 
@@ -521,131 +522,169 @@ public class QobuzMetadataService : IMusicMetadataService
         return await _httpClient.SendAsync(request);
     }
 
-    private Song ParseQobuzTrack(JsonElement track)
+    private UnvalidatedSong ParseQobuzTrack(JsonElement track)
     {
-        var externalId = GetIdAsString(track.GetProperty("id"));
-        
-        var title = track.GetProperty("title").GetString() ?? "";
-        
-        // Add version to title if present (e.g., "Remastered", "Live")
-        if (track.TryGetProperty("version", out var version))
+        string? externalId = track.TryGetProperty("id", out var idEl)
+            ? idEl.GetInt64().ToString()
+            : null;
+
+        string? mainArtistName = null;
+        string? mainArtistId = null;
+        if (track.TryGetProperty("performer", out var mainArtistEl))
         {
-            var versionStr = version.GetString();
-            if (!string.IsNullOrEmpty(versionStr))
+            mainArtistName = mainArtistEl.TryGetProperty("name", out var n)
+                ? n.GetString()
+                : null;
+            mainArtistId = mainArtistEl.TryGetProperty("id", out var i)
+                ? $"ext-qobuz-artist-{i.GetInt64()}"
+                : null;
+        }
+
+        var artists = new List<(string? Id, string? Name)>();
+        var contributors = new List<(string? Role, string? SubRole, string? ArtistId, string? ArtistName)>();
+        if (!string.IsNullOrWhiteSpace(mainArtistName))
+            artists.Add((mainArtistId, mainArtistName));
+        else
+            mainArtistName = null;
+
+        if (track.TryGetProperty("composer", out var composer))
+        {
+            var composerName = composer.TryGetProperty("name", out var cn)
+                ? cn.GetString()
+                : null;
+            var composerId = composer.TryGetProperty("id", out var ci)
+                ? $"ext-qobuz-artist-{ci.GetInt64()}"
+                : null;
+            if (!string.IsNullOrWhiteSpace(composerName))
+                contributors.Add(("composer", null, composerId, composerName));
+        }
+
+        // album element
+        JsonElement? albumElement = track.TryGetProperty("album", out var album)
+            ? album
+            : null;
+
+        // albumId
+        string? albumId = albumElement?.TryGetProperty("id", out var aid) == true
+            ? $"ext-qobuz-album-{aid.GetInt64()}"
+            : null;
+
+        // Release date from album
+        int? year = null;
+        if (track.TryGetProperty("release_date_original", out var relDate))
+        {
+            var releaseDate = relDate.GetString();
+            if (!string.IsNullOrEmpty(releaseDate) && releaseDate.Length >= 4)
             {
-                title = $"{title} ({versionStr})";
+                if (int.TryParse(releaseDate.Substring(0, 4), out var y))
+                    year = y;
             }
         }
-        
-        // For classical music, prepend work name
-        if (track.TryGetProperty("work", out var work))
+        else if (track.TryGetProperty("album", out var albumForDate) && albumForDate.TryGetProperty("release_date", out var albumRelDate))
         {
-            var workStr = work.GetString();
-            if (!string.IsNullOrEmpty(workStr))
+            var releaseDate = albumRelDate.GetString();
+            if (!string.IsNullOrEmpty(releaseDate) && releaseDate.Length >= 4)
             {
-                title = $"{workStr}: {title}";
+                if (int.TryParse(releaseDate.Substring(0, 4), out var y))
+                    year = y;
             }
         }
-        
-        var performerName = track.TryGetProperty("performer", out var performer)
-            ? performer.GetProperty("name").GetString() ?? ""
-            : "";
-        
-        var albumTitle = track.TryGetProperty("album", out var album)
-            ? album.GetProperty("title").GetString() ?? ""
-            : "";
-        
-        var albumId = track.TryGetProperty("album", out var albumForId)
-            ? $"ext-qobuz-album-{GetIdAsString(albumForId.GetProperty("id"))}"
+
+        // Explicit content status value
+        string? explicitStatus = track.TryGetProperty("parental_warning", out var pw) && pw.ValueKind == JsonValueKind.True
+            ? "explicit"
             : null;
         
-        // Get album artist
-        var albumArtist = track.TryGetProperty("album", out var albumForArtist) &&
-                          albumForArtist.TryGetProperty("artist", out var albumArtistEl)
-            ? albumArtistEl.GetProperty("name").GetString()
-            : performerName;
         
-        return new Song
-        {
-            Id = $"ext-qobuz-song-{externalId}",
-            Title = title,
-            Artist = performerName,
-            Artists = !string.IsNullOrEmpty(performerName) ? new List<string> { performerName } : new List<string>(),
-            ArtistId = track.TryGetProperty("performer", out var performerForId)
-                ? $"ext-qobuz-artist-{GetIdAsString(performerForId.GetProperty("id"))}"
+        return new UnvalidatedSong(
+            Id: externalId is not null
+                ? $"ext-qobuz-song-{externalId}"
                 : null,
-            Album = albumTitle,
-            AlbumId = albumId,
-            AlbumArtist = albumArtist,
-            Duration = track.TryGetProperty("duration", out var duration)
-                ? duration.GetInt32()
+            Isrc: track.TryGetProperty("isrc", out var isrcList) && isrcList.GetString() is { } isrcValue
+                ? new[] {isrcValue}
                 : null,
-            Track = track.TryGetProperty("track_number", out var trackNum)
-                ? trackNum.GetInt32()
+            MusicBrainzId: null,
+
+            Title: track.TryGetProperty("title", out var titleValue)
+                ? titleValue.GetString()
                 : null,
-            DiscNumber = track.TryGetProperty("media_number", out var mediaNum)
+            SortName: null,
+            Artist: mainArtistName,
+            ArtistId: mainArtistId,
+            Artists: artists,
+            DisplayArtist: ,
+            Contributors: contributors,
+            DisplayComposer: null,
+            
+            AlbumTitle: albumElement?.TryGetProperty("title", out var albumTitle) == true
+                ? albumTitle.GetString()
+                : null,
+            AlbumId: albumId,
+            AlbumArtist: albumElement?.TryGetProperty("artist", out var aaEl) == true && aaEl.TryGetProperty("name", out var aaName)
+                ? aaName.GetString()
+                : null,
+            AlbumArtists: ,
+            DisplayAlbumArtist: null,
+            AlbumDiscNr: track.TryGetProperty("media_number", out var mediaNum)
                 ? mediaNum.GetInt32()
                 : null,
-            CoverArtUrl = GetCoverArtUrl(track),
-            IsLocal = false,
-            ExternalProvider = "qobuz",
-            ExternalId = externalId
-        };
-    }
+            AlbumTrackNr: track.TryGetProperty("track_number", out var trackNum)
+                ? trackNum.GetInt32()
+                : null,
 
-    private Song ParseQobuzTrackFull(JsonElement track)
-    {
-        var song = ParseQobuzTrack(track);
-        
-        // Add additional metadata for full track
-        if (track.TryGetProperty("composer", out var composer) &&
-            composer.TryGetProperty("name", out var composerName))
-        {
-            song.Contributors = new List<string> { composerName.GetString() ?? "" };
-        }
-        
-        if (track.TryGetProperty("isrc", out var isrc))
-        {
-            song.Isrc = isrc.GetString();
-        }
-        
-        if (track.TryGetProperty("copyright", out var copyright))
-        {
-            song.Copyright = FormatCopyright(copyright.GetString() ?? "");
-        }
-        
-        // Get release date from album
-        if (track.TryGetProperty("album", out var album))
-        {
-            if (album.TryGetProperty("release_date_original", out var releaseDate))
-            {
-                var dateStr = releaseDate.GetString();
-                song.ReleaseDate = dateStr;
-                
-                if (!string.IsNullOrEmpty(dateStr) && dateStr.Length >= 4)
-                {
-                    if (int.TryParse(dateStr.Substring(0, 4), out var year))
-                    {
-                        song.Year = year;
-                    }
-                }
-            }
-            
-            if (album.TryGetProperty("tracks_count", out var tracksCount))
-            {
-                song.TotalTracks = tracksCount.GetInt32();
-            }
-            
-            if (album.TryGetProperty("genres_list", out var genres))
-            {
-                song.Genre = FormatGenres(genres);
-            }
-            
-            // Get large cover art
-            song.CoverArtUrlLarge = GetLargeCoverArtUrl(album);
-        }
-        
-        return song;
+            CoverArtId: albumId,
+
+            Genre: null,
+            Genres: genresList,
+            Moods: null,
+            ReleaseYear: year,
+            ExplicitStatus: explicitStatus,
+
+            Size: null,
+            Duration: track.TryGetProperty("duration", out var durationValue)
+                ? durationValue.GetInt32()
+                : null,
+            BitRate: null,
+            BitDepth: track.TryGetProperty("maximum_bit_depth", out var bd) && bd.ValueKind == JsonValueKind.Number
+                ? (int)bd.GetDouble()
+                : null,
+            SamplingRate: track.TryGetProperty("maximum_sampling_rate", out var sr) && sr.ValueKind == JsonValueKind.Number
+                ? (int)(sr.GetDouble() * 1000)
+                : null,
+            ChannelCount: track.TryGetProperty("maximum_channel_count", out var cc) && cc.ValueKind == JsonValueKind.Number
+                ? (int)cc.GetDouble()
+                : null,
+            Bpm: null,
+            ReplayGain: null,
+
+            ContentType: null,
+            Suffix: null,
+            TranscodedContentType: null,
+            TranscodedSuffix: null,
+
+            Works: !string.IsNullOrWhiteSpace(workStr)
+                ? new[] { ((string?)workStr, (string?)null)}
+                : null,
+            Movements: null,
+
+            Type: "music",
+            MediaType: "song",
+            IsDir: false,
+            IsVideo: false,
+
+            IsLocal: false,
+            ExternalProvider: "qobuz",
+            ExternalId: externalId,
+            LocalPath: null,
+            CoverArtUrl: albumElement?.TryGetProperty("cover_medium", out var cm) == true
+                ? cm.GetString()
+                : null,
+            CoverArtUrlLarge: albumElement?.TryGetProperty("cover_xl", out var cxl) == true
+                ? cxl.GetString()
+                : (albumElement?.TryGetProperty("cover_big", out var cb) == true
+                    ? cb.GetString()
+                    : null)
+        );
     }
 
     private Album ParseQobuzAlbum(JsonElement album)

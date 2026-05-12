@@ -245,7 +245,7 @@ public class YandexAlbumWithTracks
     /// Nested list representing disks with tracks.
     /// </summary>
     [JsonPropertyName("volumes")]
-    public  List<List<YandexTrack>>? Volumes { get; set; }
+    public List<List<YandexTrack>>? Volumes { get; set; }
 }
 
 /// <summary>

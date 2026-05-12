@@ -8,34 +8,6 @@ public class PathHelperTemplateTests
 {
     private static readonly string Sep = Path.DirectorySeparatorChar.ToString();
 
-    #region Legacy BuildTrackPath (backward compatibility)
-
-    [Fact]
-    public void BuildTrackPath_Legacy_WithTrackNumber_ReturnsExpectedPath()
-    {
-        var result = PathHelper.BuildTrackPath("/downloads", "Radiohead", "Kid A", "Everything in Its Right Place", 1, ".flac");
-
-        Assert.Equal($"/downloads{Sep}Radiohead{Sep}Kid A{Sep}01 - Everything in Its Right Place.flac", result);
-    }
-
-    [Fact]
-    public void BuildTrackPath_Legacy_WithoutTrackNumber_OmitsPrefix()
-    {
-        var result = PathHelper.BuildTrackPath("/downloads", "Radiohead", "Kid A", "Everything in Its Right Place", null, ".flac");
-
-        Assert.Equal($"/downloads{Sep}Radiohead{Sep}Kid A{Sep}Everything in Its Right Place.flac", result);
-    }
-
-    [Fact]
-    public void BuildTrackPath_Legacy_SanitizesSpecialCharacters()
-    {
-        var result = PathHelper.BuildTrackPath("/downloads", "AC/DC", "Back in Black", "Hells Bells", 1, ".mp3");
-
-        Assert.Equal($"/downloads{Sep}AC_DC{Sep}Back in Black{Sep}01 - Hells Bells.mp3", result);
-    }
-
-    #endregion
-
     #region Template-based BuildTrackPath
 
     [Fact]

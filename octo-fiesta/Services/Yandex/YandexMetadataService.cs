@@ -27,7 +27,7 @@ public class YandexMetadataService : IMusicMetadataService
 
     public YandexMetadataService(
         IHttpClientFactory httpClientFactory,
-        IOptions<YandexSettings>yandexSettings,
+        IOptions<YandexSettings> yandexSettings,
         ILogger<YandexMetadataService> logger
     )
     {
@@ -53,7 +53,8 @@ public class YandexMetadataService : IMusicMetadataService
         return combinedSearchResults
             .Tracks
             .Items
-            .Select(track => MapYandexTrackToSong(track))
+            .Select(track => Song.TryBuild(MapYandexTrackToSong(track)))
+            .OfType<Song>()
             .ToList();
     }
     
@@ -102,7 +103,8 @@ public class YandexMetadataService : IMusicMetadataService
         List<Song> songs = combinedSearchResults
             .Tracks
             .Items
-            .Select(track => MapYandexTrackToSong(track))
+            .Select(track => Song.TryBuild(MapYandexTrackToSong(track)))
+            .OfType<Song>()
             .ToList();
         
         List<Album> albums = await GetAlbumsAsync(combinedSearchResults.Albums.Items);
@@ -142,7 +144,7 @@ public class YandexMetadataService : IMusicMetadataService
             return null;
         }
 
-        return MapYandexTrackToSong(yandexTrack);
+        return Song.TryBuild(MapYandexTrackToSong(yandexTrack));
     }
     
     /// <summary>
@@ -265,13 +267,15 @@ public class YandexMetadataService : IMusicMetadataService
             .Where(track => IsTrackAvailable(track.Track))
             .OrderBy(track => track.Index)
             .Index()
-            .Select(pair => {
-                Song song = MapYandexTrackToSong(pair.Item.Track);
-                song.Track = pair.Index + 1;
-                song.Album = yandexTracklist.Title ?? "Unknown Playlist";
-                song.AlbumId = PlaylistIdHelper.CreatePlaylistId(ProviderName, externalId);
-                return song;
-            })
+            .Select(pair => Song.TryBuild(
+                MapYandexTrackToSong(pair.Item.Track) with
+                {
+                    AlbumTrackNr = pair.Index + 1,
+                    AlbumTitle = yandexTracklist.Title ?? "Unknown Playlist",
+                    AlbumId = PlaylistIdHelper.CreatePlaylistId(ProviderName, externalId)
+                }
+            ))
+            .OfType<Song>()
             .ToList();
     }
 
@@ -287,8 +291,8 @@ public class YandexMetadataService : IMusicMetadataService
     /// will be used to populate album-related Song details.
     /// </param>
     /// <returns>Song Domain Model</returns>
-    private static Song MapYandexTrackToSong(YandexTrack yandexTrack, YandexAlbumWithTracks? linkedAlbum = null)
-    {   
+    private static UnvalidatedSong MapYandexTrackToSong(YandexTrack yandexTrack, YandexAlbumWithTracks? linkedAlbum = null)
+    {
         YandexArtistShort? yandexArtist = yandexTrack.Artists?.FirstOrDefault();
         string? externalArtistId = yandexArtist?.Id.ToString();
 
@@ -300,52 +304,88 @@ public class YandexMetadataService : IMusicMetadataService
         yandexAlbum ??= yandexTrack.Albums?.FirstOrDefault();
 
         string? externalAlbumId = yandexAlbum?.Id.ToString();
-
+        string? albumId = string.IsNullOrEmpty(externalAlbumId) ? null : AlbumPrefix + externalAlbumId;
         string externalTrackId = string.IsNullOrEmpty(externalAlbumId)
-                             ? yandexTrack.Id.ToString()
-                             : $"{yandexTrack.Id}:{externalAlbumId}";
+            ? yandexTrack.Id.ToString()
+            : $"{yandexTrack.Id}:{externalAlbumId}";
 
+        string? coverUri = yandexTrack.CoverUri;
 
-        string? coverUri = yandexTrack.CoverUri ?? yandexTrack.OgImage;
+        string? explicitStatus = (yandexTrack.ContentWarning == "explicit" || yandexTrack.Disclaimers?.Contains("explicit") == true)
+            ? "explicit"
+            : yandexTrack.ContentWarning == "clean"
+                ? "clean"
+                : null;
 
-        int explicitWarning;
-        bool explicitInDisclaimers = yandexTrack.Disclaimers?.Contains("explicit") ?? false;
-        if (yandexTrack.ContentWarning == "explicit" 
-         || explicitInDisclaimers)
-        {
-            explicitWarning = 1;
-        }
-        else if (yandexTrack.ContentWarning == "clean") explicitWarning = 3;
-        else explicitWarning = 0;
+        return new UnvalidatedSong(
+            Id: SongPrefix + externalTrackId,
+            Isrc: null,
+            MusicBrainzId: null,
 
-        return new Song
-        {
-            Id = SongPrefix + externalTrackId,
-            Title = yandexTrack.Title ?? string.Empty,
-            Artist = yandexArtist?.Name ?? string.Empty,
-            ArtistId = string.IsNullOrEmpty(externalArtistId) ? null : ArtistPrefix + externalArtistId,
-            Album = yandexAlbum?.Title ?? string.Empty,
-            AlbumId = string.IsNullOrEmpty(externalAlbumId) ? null : AlbumPrefix + externalAlbumId,
-            Duration = yandexTrack.DurationMs / 1000,
-            Track = yandexAlbum?.TrackPosition?.Index,
-            DiscNumber = yandexAlbum?.TrackPosition?.Volume,
-            TotalTracks = yandexAlbum?.TrackCount,
-            Year = yandexAlbum?.Year,
-            Genre = null,
-            CoverArtUrl = MakeCoverUri(coverUri, 300),
-            CoverArtUrlLarge = MakeCoverUri(coverUri, 1000),
-            ReleaseDate = yandexAlbum?.ReleaseDate?[..10],
-            AlbumArtist = yandexAlbum?.Artists.FirstOrDefault()?.Name,
-            Composer = null,
-            Label = yandexAlbum?.Labels?.FirstOrDefault()?.Name,
-            Artists = yandexTrack.Artists?.Select(a => a.Name)?.ToList() ?? [],
-            Contributors = [],
-            IsLocal = false,
-            ExternalProvider = ProviderName,
-            ExternalId = externalTrackId,
-            LocalPath = null,
-            ExplicitContentLyrics = explicitWarning
-        };
+            Title: yandexTrack.Title,
+            SortName: null,
+            Artist: yandexArtist?.Name,
+            ArtistId: string.IsNullOrEmpty(externalArtistId)
+                ? null
+                : ArtistPrefix + externalArtistId,
+            Artists: yandexTrack.Artists is { Count: > 0 }
+                ? yandexTrack.Artists
+                .Select(a => ((string?)(ArtistPrefix + a.Id), (string?)a.Name))
+                .ToList()
+                : null,
+            DisplayArtist: null,
+            Contributors: null,
+            DisplayComposer: null,
+            
+            AlbumTitle: yandexAlbum?.Title,
+            AlbumId: albumId,
+            AlbumArtist: yandexAlbum?.Artists.FirstOrDefault()?.Name,
+            AlbumArtists: yandexAlbum?.Artists is { Count: > 0 }
+                ? yandexAlbum.Artists
+                .Select(a => ((string?)(ArtistPrefix + a.Id), (string?)a.Name))
+                .ToList()
+                : null,
+            DisplayAlbumArtist: null,
+            AlbumDiscNr: yandexAlbum?.TrackPosition?.Volume,
+            AlbumTrackNr: yandexAlbum?.TrackPosition?.Index,
+            
+            CoverArtId: albumId,
+
+            Genre: null,
+            Genres: null,
+            Moods: null,
+            ReleaseYear: yandexAlbum?.Year,
+            ExplicitStatus: explicitStatus,
+
+            Size: null,
+            Duration: yandexTrack.DurationMs / 1000,
+            BitRate: null,
+            BitDepth: null,
+            SamplingRate: null,
+            ChannelCount: null,
+            Bpm: null,
+            ReplayGain: null,
+
+            ContentType: null,
+            Suffix: null,
+            TranscodedContentType: null,
+            TranscodedSuffix: null,
+
+            Works: null,
+            Movements: null,
+
+            Type: "music",
+            MediaType: "song",
+            IsDir: false,
+            IsVideo: false,
+
+            IsLocal: false,
+            ExternalProvider: ProviderName,
+            ExternalId: externalTrackId,
+            LocalPath: null,
+            CoverArtUrl: MakeCoverUri(coverUri, 300),
+            CoverArtUrlLarge: MakeCoverUri(coverUri, 1000) 
+        );
     }
 
     /// <summary>
@@ -399,8 +439,8 @@ public class YandexMetadataService : IMusicMetadataService
             ExternalId = externalId,
             Songs = yandexAlbum.Volumes?.SelectMany(trackList => 
                 trackList.Where(IsTrackAvailable).Select(track =>
-                    MapYandexTrackToSong(track, yandexAlbum)
-                )
+                Song.TryBuild(MapYandexTrackToSong(track, yandexAlbum)))
+            .OfType<Song>()
             ).ToList() ?? [],
         };
     }
@@ -466,7 +506,7 @@ public class YandexMetadataService : IMusicMetadataService
             var response = await _httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning("Yandex API returned status code {StatausCode} for {Url}", response.StatusCode, url);
+                _logger.LogWarning("Yandex API returned status code {StatusCode} for {Url}", response.StatusCode, url);
                 return null;
             }
             
