@@ -160,7 +160,7 @@ public class SquidWTFDownloadService : BaseDownloadService
         }
         
         var downloadUrl = downloadResponse.Data.Url;
-        Logger.LogInformation("Got download URL for track {TrackId}: {Title}", trackId, song.Title);
+        Logger.LogInformation("Got download URL for track {TrackId}: {Title}", trackId, song.Core.Title);
 
         Stream downloadStream = await GetDownloadStreamAsync(downloadUrl, cancellationToken);        
         // Determine file extension based on quality
@@ -223,7 +223,7 @@ public class SquidWTFDownloadService : BaseDownloadService
         }
         
         var downloadUrl = manifest.Urls[0];
-        Logger.LogInformation("Got download URL for track {TrackId}: {Title} (quality: {Quality})", trackId, song.Title, actualQuality);
+        Logger.LogInformation("Got download URL for track {TrackId}: {Title} (quality: {Quality})", trackId, song.Core.Title, actualQuality);
 
         Stream downloadStream = await GetDownloadStreamAsync(downloadUrl, cancellationToken);        
         var extension = GetExtensionFromMimeType(manifest.MimeType);

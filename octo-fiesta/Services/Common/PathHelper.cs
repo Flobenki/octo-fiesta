@@ -34,7 +34,7 @@ public static class PathHelper
     {
         return Path.Combine(Path.GetTempPath(), "octo-fiesta-cache");
     }
-    
+
     /// <summary>
     /// Builds the output path for a downloaded track using a configurable folder template.
     /// The template is split on '/' — segments before the last become folders (sanitized via
@@ -47,7 +47,7 @@ public static class PathHelper
     /// <param name="template">Folder template with {placeholder} tokens. Uses '/' to separate folder levels.</param>
     /// <param name="downloadedQuality">Quality string for {quality} placeholder (e.g., "FLAC", "MP3_320").</param>
     /// <returns>Full path for the track file.</returns>
-    public static string BuildTrackPath(string downloadPath, Song song, string extension, string template, string? downloadedQuality)
+    public static string BuildTrackPath(string downloadPath, SongCoreData song, string extension, string template, string? downloadedQuality)
     {
         var artistForPath = song.AlbumArtist ?? song.Artist;
 
@@ -77,7 +77,7 @@ public static class PathHelper
     /// <summary>
     /// Replaces template placeholders with actual metadata values.
     /// </summary>
-    internal static string ReplacePlaceholders(string segment, Song song, string artistForPath, string? downloadedQuality)
+    internal static string ReplacePlaceholders(string segment, SongCoreData song, string artistForPath, string? downloadedQuality)
     {
         var result = segment
             .Replace("{artist}", artistForPath)

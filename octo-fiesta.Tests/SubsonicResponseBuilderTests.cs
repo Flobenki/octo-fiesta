@@ -93,15 +93,21 @@ public class SubsonicResponseBuilderTests
         // Arrange
         var song = new Song
         {
-            Id = "song123",
-            Title = "Test Song",
-            Artist = "Test Artist",
-            Album = "Test Album",
-            Duration = 180,
-            Track = 5,
-            Year = 2023,
-            Genre = "Rock",
-            LocalPath = "/music/test.mp3"
+            Core = new SongCoreData
+            {
+                Id = "song123",
+                Title = "Test Song",
+                Artist = "Test Artist",
+                Album = "Test Album",
+                Duration = 180,
+                Track = 5,
+                Year = 2023,
+                Genre = "Rock"
+            },
+            Server = new SongServerData
+            {
+                LocalPath = "/music/test.mp3"
+            }
         };
 
         // Act
@@ -125,15 +131,21 @@ public class SubsonicResponseBuilderTests
         // Arrange
         var song = new Song
         {
-            Id = "song123",
-            Title = "Test Song",
-            Artist = "Test Artist",
-            ArtistId = "artist123",
-            Album = "Test Album",
-            AlbumId = "album123",
-            Duration = 180,
-            ReleaseDate = "2023-01-02",
-            IsLocal = true
+            Core = new SongCoreData
+            {
+                Id = "song123",
+                Title = "Test Song",
+                Artist = "Test Artist",
+                ArtistId = "artist123",
+                Album = "Test Album",
+                AlbumId = "album123",
+                Duration = 180,
+                ReleaseDate = "2023-01-02"
+            },
+            Server = new SongServerData
+            {
+                IsLocal = true
+            }
         };
 
         // Act
@@ -178,8 +190,14 @@ public class SubsonicResponseBuilderTests
             Year = 2023,
             Songs = new List<Song>
             {
-                new Song { Id = "song1", Title = "Song 1", Duration = 180 },
-                new Song { Id = "song2", Title = "Song 2", Duration = 200 }
+                new Song {
+                    Core = new SongCoreData {
+                        Id = "song1", Title = "Song 1", Duration = 180 }
+                        },
+                new Song { 
+                    Core = new SongCoreData {
+                        Id = "song2", Title = "Song 2", Duration = 200 }
+                        }
             }
         };
 
@@ -210,8 +228,12 @@ public class SubsonicResponseBuilderTests
             SongCount = 2,
             Songs = new List<Song>
             {
-                new Song { Id = "song1", Title = "Song 1" },
-                new Song { Id = "song2", Title = "Song 2" }
+                new Song {
+                    Core = new SongCoreData {
+                        Id = "song1", Title = "Song 1" }},
+                new Song {
+                    Core = new SongCoreData {
+                        Id = "song2", Title = "Song 2" }}
             }
         };
 
@@ -304,9 +326,12 @@ public class SubsonicResponseBuilderTests
         // Arrange
         var song = new Song
         {
-            Id = "song123",
-            Title = "Test Song"
-            // Other fields are null
+            Core = new SongCoreData
+            {
+                Id = "song123",
+                Title = "Test Song"
+                // Other fields are null
+            }
         };
 
         // Act

@@ -293,20 +293,20 @@ public class QobuzMetadataServiceTests
         Assert.Equal(2, result.Count);
         
         // First track
-        Assert.Equal("Take Five", result[0].Title);
-        Assert.Equal("Dave Brubeck Quartet", result[0].Artist);
-        Assert.Equal("My Jazz Playlist", result[0].Album); // Album should be playlist name
-        Assert.Equal(1, result[0].Track); // Track index starts at 1
-        Assert.Equal("ext-qobuz-song-123456789", result[0].Id);
-        Assert.Equal("qobuz", result[0].ExternalProvider);
-        Assert.Equal("123456789", result[0].ExternalId);
+        Assert.Equal("Take Five", result[0].Core.Title);
+        Assert.Equal("Dave Brubeck Quartet", result[0].Core.Artist);
+        Assert.Equal("My Jazz Playlist", result[0].Core.Album); // Album should be playlist name
+        Assert.Equal(1, result[0].Core.Track); // Track index starts at 1
+        Assert.Equal("ext-qobuz-song-123456789", result[0].Core.Id);
+        Assert.Equal("qobuz", result[0].Server.ExternalProvider);
+        Assert.Equal("123456789", result[0].Server.ExternalId);
         
         // Second track
-        Assert.Equal("So What", result[1].Title);
-        Assert.Equal("Miles Davis", result[1].Artist);
-        Assert.Equal("My Jazz Playlist", result[1].Album); // Album should be playlist name
-        Assert.Equal(2, result[1].Track); // Track index increments
-        Assert.Equal("ext-qobuz-song-987654321", result[1].Id);
+        Assert.Equal("So What", result[1].Core.Title);
+        Assert.Equal("Miles Davis", result[1].Core.Artist);
+        Assert.Equal("My Jazz Playlist", result[1].Core.Album); // Album should be playlist name
+        Assert.Equal(2, result[1].Core.Track); // Track index increments
+        Assert.Equal("ext-qobuz-song-987654321", result[1].Core.Id);
     }
     
     [Fact]
@@ -389,7 +389,7 @@ public class QobuzMetadataServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Single(result);
-        Assert.Equal("Unknown Playlist", result[0].Album);
+        Assert.Equal("Unknown Playlist", result[0].Core.Album);
     }
     
     #endregion
@@ -442,8 +442,8 @@ public class QobuzMetadataServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Single(result);
-        Assert.Equal("Take Five", result[0].Title);
-        Assert.Equal("Dave Brubeck Quartet", result[0].Artist);
+        Assert.Equal("Take Five", result[0].Core.Title);
+        Assert.Equal("Dave Brubeck Quartet", result[0].Core.Artist);
     }
     
     #endregion
@@ -545,15 +545,15 @@ public class QobuzMetadataServiceTests
         
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("Take Five", result.Title);
-        Assert.Equal("Dave Brubeck Quartet", result.Artist);
-        Assert.Equal("Time Out", result.Album);
-        Assert.Equal("USCO10300456", result.Isrc);
-        Assert.Equal("℗ 1959 Columbia Records", result.Copyright);
-        Assert.Equal(1959, result.Year);
-        Assert.Equal("1959-12-14", result.ReleaseDate);
-        Assert.Contains("Paul Desmond", result.Contributors);
-        Assert.Equal("Jazz, Cool Jazz", result.Genre);
+        Assert.Equal("Take Five", result.Core.Title);
+        Assert.Equal("Dave Brubeck Quartet", result.Core.Artist);
+        Assert.Equal("Time Out", result.Core.Album);
+        Assert.Equal("USCO10300456", result.Core.Isrc);
+        Assert.Equal("℗ 1959 Columbia Records", result.Core.Copyright);
+        Assert.Equal(1959, result.Core.Year);
+        Assert.Equal("1959-12-14", result.Core.ReleaseDate);
+        Assert.Contains("Paul Desmond", result.Core.Contributors);
+        Assert.Equal("Jazz, Cool Jazz", result.Core.Genre);
     }
     
     [Fact]
@@ -644,8 +644,8 @@ public class QobuzMetadataServiceTests
         Assert.Equal("Dave Brubeck Quartet", result.Artist);
         Assert.Equal(1959, result.Year);
         Assert.Equal(2, result.Songs.Count);
-        Assert.Equal("Blue Rondo à la Turk", result.Songs[0].Title);
-        Assert.Equal("Take Five", result.Songs[1].Title);
+        Assert.Equal("Blue Rondo à la Turk", result.Songs[0].Core.Title);
+        Assert.Equal("Take Five", result.Songs[1].Core.Title);
     }
     
     [Fact]

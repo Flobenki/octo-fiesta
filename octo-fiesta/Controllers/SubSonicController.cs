@@ -213,7 +213,7 @@ public class SubsonicController : ControllerBase
             var mapping = await _localLibraryService.GetMappingForExternalSongAsync(provider!, externalId!);
             if (mapping != null)
             {
-                song.LocalPath = mapping.LocalPath;
+                song.Server.LocalPath = mapping.LocalPath;
             }
         }
 
@@ -434,9 +434,9 @@ public class SubsonicController : ControllerBase
                 {
                     foreach (var track in tracks)
                     {
-                        if (!string.IsNullOrEmpty(track.ExternalId))
+                        if (!string.IsNullOrEmpty(track.Server.ExternalId))
                         {
-                            var trackId = $"ext-{provider}-{track.ExternalId}";
+                            var trackId = $"ext-{provider}-{track.Server.ExternalId}";
                             _playlistSyncService.AddTrackToPlaylistCache(trackId, id);
                         }
                     }
@@ -553,7 +553,7 @@ public class SubsonicController : ControllerBase
             var mergedSongs = localSongs.ToList();
             foreach (var externalSong in externalAlbum.Songs)
             {
-                var normalizedExternalTitle = StringNormalizer.CreateComparisonKey(externalSong.Title);
+                var normalizedExternalTitle = StringNormalizer.CreateComparisonKey(externalSong.Core.Title);
                 if (!localSongTitles.Contains(normalizedExternalTitle))
                 {
                     mergedSongs.Add(_responseBuilder.ConvertSongToJson(externalSong));
@@ -683,9 +683,9 @@ public class SubsonicController : ControllerBase
             default:
                 // For songs, try to get from song first, then album
                 var song = await _metadataService.GetSongAsync(coverProvider!, coverExternalId!);
-                if (song?.CoverArtUrl != null)
+                if (song?.Core.CoverArtUrl != null)
                 {
-                    coverUrl = song.CoverArtUrlLarge ?? song.CoverArtUrl;
+                    coverUrl = song.Core.CoverArtUrlLarge ?? song.Core.CoverArtUrl;
                 }
                 else
                 {

@@ -267,9 +267,9 @@ public class YandexMetadataService : IMusicMetadataService
             .Index()
             .Select(pair => {
                 Song song = MapYandexTrackToSong(pair.Item.Track);
-                song.Track = pair.Index + 1;
-                song.Album = yandexTracklist.Title ?? "Unknown Playlist";
-                song.AlbumId = PlaylistIdHelper.CreatePlaylistId(ProviderName, externalId);
+                song.Core.Track = pair.Index + 1;
+                song.Core.Album = yandexTracklist.Title ?? "Unknown Playlist";
+                song.Core.AlbumId = PlaylistIdHelper.CreatePlaylistId(ProviderName, externalId);
                 return song;
             })
             .ToList();
@@ -320,31 +320,37 @@ public class YandexMetadataService : IMusicMetadataService
 
         return new Song
         {
-            Id = SongPrefix + externalTrackId,
-            Title = yandexTrack.Title ?? string.Empty,
-            Artist = yandexArtist?.Name ?? string.Empty,
-            ArtistId = string.IsNullOrEmpty(externalArtistId) ? null : ArtistPrefix + externalArtistId,
-            Album = yandexAlbum?.Title ?? string.Empty,
-            AlbumId = string.IsNullOrEmpty(externalAlbumId) ? null : AlbumPrefix + externalAlbumId,
-            Duration = yandexTrack.DurationMs / 1000,
-            Track = yandexAlbum?.TrackPosition?.Index,
-            DiscNumber = yandexAlbum?.TrackPosition?.Volume,
-            TotalTracks = yandexAlbum?.TrackCount,
-            Year = yandexAlbum?.Year,
-            Genre = null,
-            CoverArtUrl = MakeCoverUri(coverUri, 300),
-            CoverArtUrlLarge = MakeCoverUri(coverUri, 1000),
-            ReleaseDate = yandexAlbum?.ReleaseDate?[..10],
-            AlbumArtist = yandexAlbum?.Artists.FirstOrDefault()?.Name,
-            Composer = null,
-            Label = yandexAlbum?.Labels?.FirstOrDefault()?.Name,
-            Artists = yandexTrack.Artists?.Select(a => a.Name)?.ToList() ?? [],
-            Contributors = [],
-            IsLocal = false,
-            ExternalProvider = ProviderName,
-            ExternalId = externalTrackId,
-            LocalPath = null,
-            ExplicitContentLyrics = explicitWarning
+            Core = new SongCoreData
+            {
+                Id = SongPrefix + externalTrackId,
+                Title = yandexTrack.Title ?? string.Empty,
+                Artist = yandexArtist?.Name ?? string.Empty,
+                ArtistId = string.IsNullOrEmpty(externalArtistId) ? null : ArtistPrefix + externalArtistId,
+                Album = yandexAlbum?.Title ?? string.Empty,
+                AlbumId = string.IsNullOrEmpty(externalAlbumId) ? null : AlbumPrefix + externalAlbumId,
+                Duration = yandexTrack.DurationMs / 1000,
+                Track = yandexAlbum?.TrackPosition?.Index,
+                DiscNumber = yandexAlbum?.TrackPosition?.Volume,
+                TotalTracks = yandexAlbum?.TrackCount,
+                Year = yandexAlbum?.Year,
+                Genre = null,
+                CoverArtUrl = MakeCoverUri(coverUri, 300),
+                CoverArtUrlLarge = MakeCoverUri(coverUri, 1000),
+                ReleaseDate = yandexAlbum?.ReleaseDate?[..10],
+                AlbumArtist = yandexAlbum?.Artists.FirstOrDefault()?.Name,
+                Composer = null,
+                Label = yandexAlbum?.Labels?.FirstOrDefault()?.Name,
+                Artists = yandexTrack.Artists?.Select(a => a.Name)?.ToList() ?? [],
+                Contributors = [],
+                ExplicitContentLyrics = explicitWarning
+            },
+            Server = new SongServerData
+            {
+                IsLocal = false,
+                ExternalProvider = ProviderName,
+                ExternalId = externalTrackId,
+                LocalPath = null
+            }
         };
     }
 

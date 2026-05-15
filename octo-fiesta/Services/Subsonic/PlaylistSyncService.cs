@@ -175,29 +175,29 @@ public class PlaylistSyncService
             {
                 try
                 {
-                    if (string.IsNullOrEmpty(track.ExternalId))
+                    if (string.IsNullOrEmpty(track.Server.ExternalId))
                     {
-                        _logger.LogWarning("Track has no external ID, skipping: {Title}", track.Title);
+                        _logger.LogWarning("Track has no external ID, skipping: {Title}", track.Core.Title);
                         continue;
                     }
                     
                     // Add track to playlist cache BEFORE downloading
                     // This marks it as part of a full playlist download, so AddTrackToM3UAsync will skip real-time updates
-                    var trackId = $"ext-{provider}-{track.ExternalId}";
+                    var trackId = $"ext-{provider}-{track.Server.ExternalId}";
                     AddTrackToPlaylistCache(trackId, playlistId);
                     
-                    _logger.LogInformation("Downloading track '{Artist} - {Title}'", track.Artist, track.Title);
+                    _logger.LogInformation("Downloading track '{Artist} - {Title}'", track.Core.Artist, track.Core.Title);
                     // Use DownloadSongToPermanentAsync in Cache mode when starring to ensure tracks go to permanent storage
                     var localPath = forcePermanent
-                        ? await downloadService.DownloadSongToPermanentAsync(provider, track.ExternalId, cancellationToken)
-                        : await downloadService.DownloadSongAsync(provider, track.ExternalId, cancellationToken);
+                        ? await downloadService.DownloadSongToPermanentAsync(provider, track.Server.ExternalId, cancellationToken)
+                        : await downloadService.DownloadSongAsync(provider, track.Server.ExternalId, cancellationToken);
                     
                     downloadedTracks.Add((track, localPath));
                     _logger.LogDebug("Downloaded: {Path}", localPath);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to download track '{Artist} - {Title}'", track.Artist, track.Title);
+                    _logger.LogWarning(ex, "Failed to download track '{Artist} - {Title}'", track.Core.Artist, track.Core.Title);
                 }
             }
             
@@ -243,8 +243,8 @@ public class PlaylistSyncService
                 relativePath = relativePath.Replace('\\', '/');
                 
                 // Add EXTINF line with duration and artist - title
-                var duration = song.Duration ?? 0;
-                m3uContent.AppendLine($"#EXTINF:{duration},{song.Artist} - {song.Title}");
+                var duration = song.Core.Duration ?? 0;
+                m3uContent.AppendLine($"#EXTINF:{duration},{song.Core.Artist} - {song.Core.Title}");
                 m3uContent.AppendLine(relativePath);
             }
             
@@ -264,7 +264,7 @@ public class PlaylistSyncService
     /// The M3U is rebuilt in the correct playlist order each time.
     /// </summary>
     /// <param name="isFullPlaylistDownload">If true, skips M3U update (will be done at the end by DownloadFullPlaylistAsync)</param>
-    public async Task AddTrackToM3UAsync(string playlistId, Song track, string localPath, bool isFullPlaylistDownload = false)
+    public async Task AddTrackToM3UAsync(string playlistId, SongCoreData track, string localPath, bool isFullPlaylistDownload = false)
     {
         // Skip real-time updates during full playlist download (M3U will be created once at the end)
         if (isFullPlaylistDownload)
@@ -321,15 +321,15 @@ public class PlaylistSyncService
                 string? trackLocalPath = null;
                 
                 // If this is the track we just downloaded
-                if (playlistTrack.Id == track.Id)
+                if (playlistTrack.Core.Id == track.Id)
                 {
                     trackLocalPath = localPath;
                 }
                 else
                 {
                     // Check if track was previously downloaded
-                    var trackProvider = playlistTrack.ExternalProvider;
-                    var trackExternalId = playlistTrack.ExternalId;
+                    var trackProvider = playlistTrack.Server.ExternalProvider;
+                    var trackExternalId = playlistTrack.Server.ExternalId;
                     
                     if (!string.IsNullOrEmpty(trackProvider) && !string.IsNullOrEmpty(trackExternalId))
                     {
@@ -350,8 +350,8 @@ public class PlaylistSyncService
                     var relativePath = Path.GetRelativePath(_playlistDirectory, trackLocalPath);
                     relativePath = relativePath.Replace('\\', '/');
                     
-                    var duration = playlistTrack.Duration ?? 0;
-                    m3uContent.AppendLine($"#EXTINF:{duration},{playlistTrack.Artist} - {playlistTrack.Title}");
+                    var duration = playlistTrack.Core.Duration ?? 0;
+                    m3uContent.AppendLine($"#EXTINF:{duration},{playlistTrack.Core.Artist} - {playlistTrack.Core.Title}");
                     m3uContent.AppendLine(relativePath);
                     addedCount++;
                 }

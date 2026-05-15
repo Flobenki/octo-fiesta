@@ -41,7 +41,7 @@ public class DeezerMetadataService : IMusicMetadataService
                 foreach (var track in data.EnumerateArray())
                 {
                     var song = ParseDeezerTrack(track);
-                    if (ShouldIncludeSong(song))
+                    if (ShouldIncludeSong(song.Core))
                     {
                         songs.Add(song);
                     }
@@ -168,31 +168,31 @@ public class DeezerMetadataService : IMusicMetadataService
                         genresData.GetArrayLength() > 0 &&
                         genresData[0].TryGetProperty("name", out var genreName))
                     {
-                        song.Genre = genreName.GetString();
+                        song.Core.Genre = genreName.GetString();
                     }
                     
                     // Total track count
                     if (albumData.TryGetProperty("nb_tracks", out var nbTracks))
                     {
-                        song.TotalTracks = nbTracks.GetInt32();
+                        song.Core.TotalTracks = nbTracks.GetInt32();
                     }
                     
                     // Label
                     if (albumData.TryGetProperty("label", out var label))
                     {
-                        song.Label = label.GetString();
+                        song.Core.Label = label.GetString();
                     }
                     
                     // Cover art XL if not already set
-                    if (string.IsNullOrEmpty(song.CoverArtUrlLarge))
+                    if (string.IsNullOrEmpty(song.Core.CoverArtUrlLarge))
                     {
                         if (albumData.TryGetProperty("cover_xl", out var coverXl))
                         {
-                            song.CoverArtUrlLarge = coverXl.GetString();
+                            song.Core.CoverArtUrlLarge = coverXl.GetString();
                         }
                         else if (albumData.TryGetProperty("cover_big", out var coverBig))
                         {
-                            song.CoverArtUrlLarge = coverBig.GetString();
+                            song.Core.CoverArtUrlLarge = coverBig.GetString();
                         }
                     }
                 }
@@ -248,15 +248,15 @@ public class DeezerMetadataService : IMusicMetadataService
                         var song = ParseDeezerTrack(track, trackIndex, album.Artist);
 
                         // Ensure album metadata is set (tracks in album response may not have full album object)
-                        song.Album = album.Title;
-                        song.AlbumId = album.Id;
-                        song.AlbumArtist = album.Artist;
-                        song.Year ??= album.Year;
-                        song.Genre ??= album.Genre;
-                        song.ReleaseType ??= album.ReleaseType;
-                        song.TotalTracks ??= album.SongCount;
+                        song.Core.Album = album.Title;
+                        song.Core.AlbumId = album.Id;
+                        song.Core.AlbumArtist = album.Artist;
+                        song.Core.Year ??= album.Year;
+                        song.Core.Genre ??= album.Genre;
+                        song.Core.ReleaseType ??= album.ReleaseType;
+                        song.Core.TotalTracks ??= album.SongCount;
 
-                        if (ShouldIncludeSong(song))
+                        if (ShouldIncludeSong(song.Core))
                         {
                             album.Songs.Add(song);
                         }
@@ -284,15 +284,15 @@ public class DeezerMetadataService : IMusicMetadataService
                 var song = ParseDeezerTrack(track, trackIndex, album.Artist);
 
                 // Ensure album metadata is set (tracks in album response may not have full album object)
-                song.Album = album.Title;
-                song.AlbumId = album.Id;
-                song.AlbumArtist = album.Artist;
-                song.Year ??= album.Year;
-                song.Genre ??= album.Genre;
-                song.ReleaseType ??= album.ReleaseType;
-                song.TotalTracks ??= album.SongCount;
+                song.Core.Album = album.Title;
+                song.Core.AlbumId = album.Id;
+                song.Core.AlbumArtist = album.Artist;
+                song.Core.Year ??= album.Year;
+                song.Core.Genre ??= album.Genre;
+                song.Core.ReleaseType ??= album.ReleaseType;
+                song.Core.TotalTracks ??= album.SongCount;
 
-                if (ShouldIncludeSong(song))
+                if (ShouldIncludeSong(song.Core))
                 {
                     album.Songs.Add(song);
                 }
@@ -364,39 +364,45 @@ public class DeezerMetadataService : IMusicMetadataService
         
         return new Song
         {
-            Id = $"ext-deezer-song-{externalId}",
-            Title = track.GetProperty("title").GetString() ?? "",
-            Artist = mainArtist,
-            Artists = !string.IsNullOrEmpty(mainArtist) ? new List<string> { mainArtist } : new List<string>(),
-            ArtistId = track.TryGetProperty("artist", out var artistForId) 
-                ? $"ext-deezer-artist-{artistForId.GetProperty("id").GetInt64()}" 
-                : null,
-            Album = track.TryGetProperty("album", out var album) 
-                ? album.GetProperty("title").GetString() ?? "" 
-                : "",
-            AlbumId = track.TryGetProperty("album", out var albumForId) 
-                ? $"ext-deezer-album-{albumForId.GetProperty("id").GetInt64()}" 
-                : null,
-            Duration = track.TryGetProperty("duration", out var duration) 
-                ? duration.GetInt32() 
-                : null,
-            Track = trackNumber,
-            CoverArtUrl = track.TryGetProperty("album", out var albumForCover) && 
-                          albumForCover.TryGetProperty("cover_medium", out var cover)
-                ? cover.GetString()
-                : null,
-            CoverArtUrlLarge = track.TryGetProperty("album", out var albumForCoverXL) && 
-                            albumForCoverXL.TryGetProperty("cover_xl", out var coverxl)
-                ? coverxl.GetString()
-                : (track.TryGetProperty("album", out var albumForCoverBig) &&
-                   albumForCoverBig.TryGetProperty("cover_big", out var coverBig)
-                    ? coverBig.GetString()
-                    : null),
-            AlbumArtist = albumArtist,
-            IsLocal = false,
-            ExternalProvider = "deezer",
-            ExternalId = externalId,
-            ExplicitContentLyrics = explicitContentLyrics
+            Core = new SongCoreData
+            {
+                Id = $"ext-deezer-song-{externalId}",
+                Title = track.GetProperty("title").GetString() ?? "",
+                Artist = mainArtist,
+                Artists = !string.IsNullOrEmpty(mainArtist) ? new List<string> { mainArtist } : new List<string>(),
+                ArtistId = track.TryGetProperty("artist", out var artistForId) 
+                    ? $"ext-deezer-artist-{artistForId.GetProperty("id").GetInt64()}" 
+                    : null,
+                Album = track.TryGetProperty("album", out var album) 
+                    ? album.GetProperty("title").GetString() ?? "" 
+                    : "",
+                AlbumId = track.TryGetProperty("album", out var albumForId) 
+                    ? $"ext-deezer-album-{albumForId.GetProperty("id").GetInt64()}" 
+                    : null,
+                Duration = track.TryGetProperty("duration", out var duration) 
+                    ? duration.GetInt32() 
+                    : null,
+                Track = trackNumber,
+                CoverArtUrl = track.TryGetProperty("album", out var albumForCover) && 
+                            albumForCover.TryGetProperty("cover_medium", out var cover)
+                    ? cover.GetString()
+                    : null,
+                CoverArtUrlLarge = track.TryGetProperty("album", out var albumForCoverXL) && 
+                                albumForCoverXL.TryGetProperty("cover_xl", out var coverxl)
+                    ? coverxl.GetString()
+                    : (track.TryGetProperty("album", out var albumForCoverBig) &&
+                    albumForCoverBig.TryGetProperty("cover_big", out var coverBig)
+                        ? coverBig.GetString()
+                        : null),
+                AlbumArtist = albumArtist,
+                ExplicitContentLyrics = explicitContentLyrics
+            },
+            Server = new SongServerData
+            {
+                IsLocal = false,
+                ExternalProvider = "deezer",
+                ExternalId = externalId,
+            }
         };
     }
 
@@ -498,36 +504,42 @@ public class DeezerMetadataService : IMusicMetadataService
         
         return new Song
         {
-            Id = $"ext-deezer-song-{externalId}",
-            Title = track.GetProperty("title").GetString() ?? "",
-            Artist = mainArtist,
-            Artists = contributors.Count > 0 ? contributors : (!string.IsNullOrEmpty(mainArtist) ? new List<string> { mainArtist } : new List<string>()),
-            ArtistId = track.TryGetProperty("artist", out var artistForId) 
-                ? $"ext-deezer-artist-{artistForId.GetProperty("id").GetInt64()}" 
-                : null,
-            Album = track.TryGetProperty("album", out var album) 
-                ? album.GetProperty("title").GetString() ?? "" 
-                : "",
-            AlbumId = track.TryGetProperty("album", out var albumForId) 
-                ? $"ext-deezer-album-{albumForId.GetProperty("id").GetInt64()}" 
-                : null,
-            Duration = track.TryGetProperty("duration", out var duration) 
-                ? duration.GetInt32() 
-                : null,
-            Track = trackNumber,
-            DiscNumber = discNumber,
-            Year = year,
-            Bpm = bpm,
-            Isrc = isrc,
-            ReleaseDate = releaseDate,
-            AlbumArtist = albumArtist,
-            Contributors = contributors,
-            CoverArtUrl = coverMedium,
-            CoverArtUrlLarge = coverLarge,
-            IsLocal = false,
-            ExternalProvider = "deezer",
-            ExternalId = externalId,
-            ExplicitContentLyrics = explicitContentLyrics
+            Core = new SongCoreData
+            {
+                Id = $"ext-deezer-song-{externalId}",
+                Title = track.GetProperty("title").GetString() ?? "",
+                Artist = mainArtist,
+                Artists = contributors.Count > 0 ? contributors : (!string.IsNullOrEmpty(mainArtist) ? new List<string> { mainArtist } : new List<string>()),
+                ArtistId = track.TryGetProperty("artist", out var artistForId) 
+                    ? $"ext-deezer-artist-{artistForId.GetProperty("id").GetInt64()}" 
+                    : null,
+                Album = track.TryGetProperty("album", out var album) 
+                    ? album.GetProperty("title").GetString() ?? "" 
+                    : "",
+                AlbumId = track.TryGetProperty("album", out var albumForId) 
+                    ? $"ext-deezer-album-{albumForId.GetProperty("id").GetInt64()}" 
+                    : null,
+                Duration = track.TryGetProperty("duration", out var duration) 
+                    ? duration.GetInt32() 
+                    : null,
+                Track = trackNumber,
+                DiscNumber = discNumber,
+                Year = year,
+                Bpm = bpm,
+                Isrc = isrc,
+                ReleaseDate = releaseDate,
+                AlbumArtist = albumArtist,
+                Contributors = contributors,
+                CoverArtUrl = coverMedium,
+                CoverArtUrlLarge = coverLarge,
+                ExplicitContentLyrics = explicitContentLyrics
+            },
+            Server = new SongServerData
+            {
+                IsLocal = false,
+                ExternalProvider = "deezer",
+                ExternalId = externalId
+            }
         };
     }
 
@@ -702,11 +714,11 @@ public class DeezerMetadataService : IMusicMetadataService
                             var song = ParseDeezerTrack(track);
 
                             // Override album name to be the playlist name
-                            song.Album = playlistName;
+                            song.Core.Album = playlistName;
 
-                            if (ShouldIncludeSong(song))
+                            if (ShouldIncludeSong(song.Core))
                             {
-                                song.Track = songs.Count + 1;
+                                song.Core.Track = songs.Count + 1;
                                 songs.Add(song);
                             }
                         }
@@ -727,11 +739,11 @@ public class DeezerMetadataService : IMusicMetadataService
                 foreach (var track in tracksData.EnumerateArray())
                 {
                     var song = ParseDeezerTrack(track);
-                    song.Album = playlistName;
+                    song.Core.Album = playlistName;
 
-                    if (ShouldIncludeSong(song))
+                    if (ShouldIncludeSong(song.Core))
                     {
-                        song.Track = songs.Count + 1;
+                        song.Core.Track = songs.Count + 1;
                         songs.Add(song);
                     }
                 }
@@ -803,7 +815,7 @@ public class DeezerMetadataService : IMusicMetadataService
     /// </summary>
     /// <param name="song">The song to check</param>
     /// <returns>True if the song should be included, false otherwise</returns>
-    private bool ShouldIncludeSong(Song song)
+    private bool ShouldIncludeSong(SongCoreData song)
     {
         // If no explicit content info, include the song
         if (song.ExplicitContentLyrics == null)

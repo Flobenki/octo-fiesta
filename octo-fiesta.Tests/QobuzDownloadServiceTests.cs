@@ -309,8 +309,14 @@ public class QobuzDownloadServiceTests : IDisposable
                 Title = "Test Album",
                 Songs = new List<Song>
                 {
-                    new Song { ExternalId = "111", Title = "Track 1" },
-                    new Song { ExternalId = "222", Title = "Track 2" }
+                    new Song {
+                        Core = new SongCoreData { Title = "Track 1" },
+                        Server = new SongServerData { ExternalId = "111" }
+                        },
+                    new Song {
+                        Core = new SongCoreData { Title = "Track 2" },
+                        Server = new SongServerData { ExternalId = "222" }
+                    }
                 }
             });
 

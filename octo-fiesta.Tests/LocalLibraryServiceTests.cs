@@ -127,12 +127,18 @@ public class LocalLibraryServiceTests : IDisposable
         // Arrange
         var song = new Song
         {
-            Id = "ext-deezer-123456",
-            Title = "Test Song",
-            Artist = "Test Artist",
-            Album = "Test Album",
-            ExternalProvider = "deezer",
-            ExternalId = "123456"
+            Core = new SongCoreData
+            {
+                Id = "ext-deezer-123456",
+                Title = "Test Song",
+                Artist = "Test Artist",
+                Album = "Test Album"
+            },
+            Server = new SongServerData
+            {
+                ExternalProvider = "deezer",
+                ExternalId = "123456"
+            }
         };
         var localPath = Path.Combine(_testDownloadPath, "test-song.mp3");
         
@@ -153,12 +159,18 @@ public class LocalLibraryServiceTests : IDisposable
         // Arrange
         var song = new Song
         {
-            Id = "ext-deezer-999999",
-            Title = "Deleted Song",
-            Artist = "Test Artist",
-            Album = "Test Album",
-            ExternalProvider = "deezer",
-            ExternalId = "999999"
+            Core = new SongCoreData
+            {
+                Id = "ext-deezer-999999",
+                Title = "Deleted Song",
+                Artist = "Test Artist",
+                Album = "Test Album"
+            },
+            Server = new SongServerData
+            {
+                ExternalProvider = "deezer",
+                ExternalId = "999999"
+            }
         };
         var localPath = Path.Combine(_testDownloadPath, "deleted-song.mp3");
         
@@ -180,12 +192,18 @@ public class LocalLibraryServiceTests : IDisposable
         // Arrange
         var song = new Song
         {
-            Id = "local-123",
-            Title = "Local Song",
-            Artist = "Local Artist",
-            Album = "Local Album",
-            ExternalProvider = null,
-            ExternalId = null
+            Core = new SongCoreData
+            {
+                Id = "local-123",
+                Title = "Local Song",
+                Artist = "Local Artist",
+                Album = "Local Album"
+            },
+            Server = new SongServerData
+            {
+                ExternalProvider = null,
+                ExternalId = null
+            }
         };
         var localPath = Path.Combine(_testDownloadPath, "local-song.mp3");
 
@@ -223,11 +241,17 @@ public class LocalLibraryServiceTests : IDisposable
     {
         var song = new Song
         {
-            Title = "Scanned Song",
-            Artist = "Scan Artist",
-            Album = "Scan Album",
-            ExternalProvider = "deezer",
-            ExternalId = "scan-id"
+            Core = new SongCoreData
+            {
+                Title = "Scanned Song",
+                Artist = "Scan Artist",
+                Album = "Scan Album"
+            },
+            Server = new SongServerData
+            {
+                ExternalProvider = "deezer",
+                ExternalId = "scan-id"
+            }
         };
         var localPath = Path.Combine(_testDownloadPath, "scan-song.mp3");
         await File.WriteAllTextAsync(localPath, "fake audio content");
@@ -301,11 +325,17 @@ public class LocalLibraryServiceTests : IDisposable
             .Setup(x => x.GetSongAsync("deezer", "fallback-id"))
             .ReturnsAsync(new Song
             {
-                Title = "Fallback Song",
-                Artist = "Fallback Artist",
-                Album = "Fallback Album",
-                ExternalProvider = "deezer",
-                ExternalId = "fallback-id"
+                Core = new SongCoreData
+                {
+                    Title = "Fallback Song",
+                    Artist = "Fallback Artist",
+                    Album = "Fallback Album"
+                },
+                Server = new SongServerData
+                {
+                    ExternalProvider = "deezer",
+                    ExternalId = "fallback-id"
+                }
             });
 
         _mockHandler.Protected()

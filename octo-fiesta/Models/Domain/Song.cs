@@ -1,9 +1,15 @@
 namespace octo_fiesta.Models.Domain;
 
+public record Song
+{
+    public SongCoreData Core { get; set; } = new();
+    public SongServerData Server { get; set; } = new();
+};
+
 /// <summary>
 /// Represents a song (local or external)
 /// </summary>
-public class Song
+public record SongCoreData
 {
     /// <summary>
     /// Unique ID. For external songs, prefixed with "ext-" + provider + "-" + external id
@@ -76,6 +82,20 @@ public class Song
     public List<string> Contributors { get; set; } = new();
     
     /// <summary>
+    /// Deezer explicit content lyrics value
+    /// 0 = Naturally clean, 1 = Explicit, 2 = Not applicable, 3 = Clean/edited version, 6/7 = Unknown
+    /// </summary>
+    public int? ExplicitContentLyrics { get; set; }
+
+    /// <summary>
+    /// Album release type (album, single, ep, etc.)
+    /// </summary>
+    public string? ReleaseType { get; set; }
+}
+
+public class SongServerData
+{
+    /// <summary>
     /// Indicates whether the song is available locally or needs to be downloaded
     /// </summary>
     public bool IsLocal { get; set; }
@@ -93,16 +113,5 @@ public class Song
     /// <summary>
     /// Local file path (if available)
     /// </summary>
-    public string? LocalPath { get; set; }
-    
-    /// <summary>
-    /// Deezer explicit content lyrics value
-    /// 0 = Naturally clean, 1 = Explicit, 2 = Not applicable, 3 = Clean/edited version, 6/7 = Unknown
-    /// </summary>
-    public int? ExplicitContentLyrics { get; set; }
-
-    /// <summary>
-    /// Album release type (album, single, ep, etc.)
-    /// </summary>
-    public string? ReleaseType { get; set; }
+    public string? LocalPath { get; set; }   
 }

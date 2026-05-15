@@ -65,13 +65,13 @@ public class DeezerMetadataServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Single(result);
-        Assert.Equal("ext-deezer-song-123456", result[0].Id);
-        Assert.Equal("Test Song", result[0].Title);
-        Assert.Equal("Test Artist", result[0].Artist);
-        Assert.Equal("Test Album", result[0].Album);
-        Assert.Equal(180, result[0].Duration);
-        Assert.False(result[0].IsLocal);
-        Assert.Equal("deezer", result[0].ExternalProvider);
+        Assert.Equal("ext-deezer-song-123456", result[0].Core.Id);
+        Assert.Equal("Test Song", result[0].Core.Title);
+        Assert.Equal("Test Artist", result[0].Core.Artist);
+        Assert.Equal("Test Album", result[0].Core.Album);
+        Assert.Equal(180, result[0].Core.Duration);
+        Assert.False(result[0].Server.IsLocal);
+        Assert.Equal("deezer", result[0].Server.ExternalProvider);
     }
 
     [Fact]
@@ -180,8 +180,8 @@ public class DeezerMetadataServiceTests
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("ext-deezer-song-123456", result.Id);
-        Assert.Equal("Test Song", result.Title);
+        Assert.Equal("ext-deezer-song-123456", result.Core.Id);
+        Assert.Equal("Test Song", result.Core.Title);
     }
 
     [Fact]
@@ -273,8 +273,8 @@ public class DeezerMetadataServiceTests
         Assert.Equal("Test Album", result.Title);
         Assert.Equal("Test Artist", result.Artist);
         Assert.Equal(2, result.Songs.Count);
-        Assert.Equal("Track 1", result.Songs[0].Title);
-        Assert.Equal("Track 2", result.Songs[1].Title);
+        Assert.Equal("Track 1", result.Songs[0].Core.Title);
+        Assert.Equal("Track 2", result.Songs[1].Core.Title);
     }
 
     [Fact]
@@ -322,10 +322,10 @@ public class DeezerMetadataServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(4, result.Songs.Count);
-        Assert.Equal("Track 1", result.Songs[0].Title);
-        Assert.Equal("Track 2", result.Songs[1].Title);
-        Assert.Equal("Track 3", result.Songs[2].Title);
-        Assert.Equal("Track 4", result.Songs[3].Title);
+        Assert.Equal("Track 1", result.Songs[0].Core.Title);
+        Assert.Equal("Track 2", result.Songs[1].Core.Title);
+        Assert.Equal("Track 3", result.Songs[2].Core.Title);
+        Assert.Equal("Track 4", result.Songs[3].Core.Title);
     }
 
     [Fact]
@@ -374,8 +374,8 @@ public class DeezerMetadataServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(2, result.Songs.Count);
-        Assert.Equal("Track 1", result.Songs[0].Title);
-        Assert.Equal("Track 2", result.Songs[1].Title);
+        Assert.Equal("Track 1", result.Songs[0].Core.Title);
+        Assert.Equal("Track 2", result.Songs[1].Core.Title);
     }
 
     [Fact]
@@ -471,9 +471,9 @@ public class DeezerMetadataServiceTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, s => s.Title == "Explicit Original");
-        Assert.Contains(result, s => s.Title == "Naturally Clean");
-        Assert.DoesNotContain(result, s => s.Title == "Clean Version");
+        Assert.Contains(result, s => s.Core.Title == "Explicit Original");
+        Assert.Contains(result, s => s.Core.Title == "Naturally Clean");
+        Assert.DoesNotContain(result, s => s.Core.Title == "Clean Version");
     }
 
     [Fact]
@@ -523,9 +523,9 @@ public class DeezerMetadataServiceTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Contains(result, s => s.Title == "Clean Version");
-        Assert.Contains(result, s => s.Title == "Naturally Clean");
-        Assert.DoesNotContain(result, s => s.Title == "Explicit Original");
+        Assert.Contains(result, s => s.Core.Title == "Clean Version");
+        Assert.Contains(result, s => s.Core.Title == "Naturally Clean");
+        Assert.DoesNotContain(result, s => s.Core.Title == "Explicit Original");
     }
 
     [Fact]
@@ -606,7 +606,7 @@ public class DeezerMetadataServiceTests
 
         // Assert
         Assert.Single(result);
-        Assert.Equal("No Explicit Info", result[0].Title);
+        Assert.Equal("No Explicit Info", result[0].Core.Title);
     }
 
     [Fact]
@@ -667,9 +667,9 @@ public class DeezerMetadataServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Equal(2, result.Songs.Count);
-        Assert.Contains(result.Songs, s => s.Title == "Explicit Track");
-        Assert.Contains(result.Songs, s => s.Title == "Naturally Clean Track");
-        Assert.DoesNotContain(result.Songs, s => s.Title == "Clean Version Track");
+        Assert.Contains(result.Songs, s => s.Core.Title == "Explicit Track");
+        Assert.Contains(result.Songs, s => s.Core.Title == "Naturally Clean Track");
+        Assert.DoesNotContain(result.Songs, s => s.Core.Title == "Clean Version Track");
     }
 
     [Fact]
@@ -699,7 +699,7 @@ public class DeezerMetadataServiceTests
 
         // Assert
         Assert.Single(result);
-        Assert.Equal(1, result[0].ExplicitContentLyrics);
+        Assert.Equal(1, result[0].Core.ExplicitContentLyrics);
     }
 
     #endregion
@@ -888,11 +888,11 @@ public class DeezerMetadataServiceTests
 
         // Assert
         Assert.Equal(2, result.Count);
-        Assert.Equal("Track 1", result[0].Title);
-        Assert.Equal("Artist A", result[0].Artist);
-        Assert.Equal("ext-deezer-song-111", result[0].Id);
-        Assert.Equal(1, result[0].Track);
-        Assert.Equal(2, result[1].Track);
+        Assert.Equal("Track 1", result[0].Core.Title);
+        Assert.Equal("Artist A", result[0].Core.Artist);
+        Assert.Equal("ext-deezer-song-111", result[0].Core.Id);
+        Assert.Equal(1, result[0].Core.Track);
+        Assert.Equal(2, result[1].Core.Track);
     }
 
     [Fact]

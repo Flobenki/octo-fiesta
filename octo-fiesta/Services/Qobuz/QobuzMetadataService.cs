@@ -214,14 +214,14 @@ public class QobuzMetadataService : IMusicMetadataService
                     var song = ParseQobuzTrack(track);
                     
                     // Ensure album metadata is set (tracks in album response may not have full album object)
-                    song.Album = album.Title;
-                    song.AlbumId = album.Id;
-                    song.AlbumArtist = album.Artist;
-                    song.Year ??= album.Year;
-                    song.Genre ??= album.Genre;
-                    song.TotalTracks ??= album.SongCount;
-                    song.CoverArtUrl ??= album.CoverArtUrl;
-                    song.CoverArtUrlLarge ??= album.CoverArtUrlLarge;
+                    song.Core.Album = album.Title;
+                    song.Core.AlbumId = album.Id;
+                    song.Core.AlbumArtist = album.Artist;
+                    song.Core.Year ??= album.Year;
+                    song.Core.Genre ??= album.Genre;
+                    song.Core.TotalTracks ??= album.SongCount;
+                    song.Core.CoverArtUrl ??= album.CoverArtUrl;
+                    song.Core.CoverArtUrlLarge ??= album.CoverArtUrlLarge;
                     
                     if (ShouldIncludeSong(song))
                     {
@@ -408,8 +408,8 @@ public class QobuzMetadataService : IMusicMetadataService
                     var song = ParseQobuzTrack(track);
                     
                     // Override album name to be the playlist name
-                    song.Album = playlistName;
-                    song.Track = trackIndex;
+                    song.Core.Album = playlistName;
+                    song.Core.Track = trackIndex;
                     
                     if (ShouldIncludeSong(song))
                     {
@@ -567,29 +567,35 @@ public class QobuzMetadataService : IMusicMetadataService
         
         return new Song
         {
-            Id = $"ext-qobuz-song-{externalId}",
-            Title = title,
-            Artist = performerName,
-            Artists = !string.IsNullOrEmpty(performerName) ? new List<string> { performerName } : new List<string>(),
-            ArtistId = track.TryGetProperty("performer", out var performerForId)
-                ? $"ext-qobuz-artist-{GetIdAsString(performerForId.GetProperty("id"))}"
-                : null,
-            Album = albumTitle,
-            AlbumId = albumId,
-            AlbumArtist = albumArtist,
-            Duration = track.TryGetProperty("duration", out var duration)
-                ? duration.GetInt32()
-                : null,
-            Track = track.TryGetProperty("track_number", out var trackNum)
-                ? trackNum.GetInt32()
-                : null,
-            DiscNumber = track.TryGetProperty("media_number", out var mediaNum)
-                ? mediaNum.GetInt32()
-                : null,
-            CoverArtUrl = GetCoverArtUrl(track),
-            IsLocal = false,
-            ExternalProvider = "qobuz",
-            ExternalId = externalId
+            Core = new SongCoreData
+            {
+                Id = $"ext-qobuz-song-{externalId}",
+                Title = title,
+                Artist = performerName,
+                Artists = !string.IsNullOrEmpty(performerName) ? new List<string> { performerName } : new List<string>(),
+                ArtistId = track.TryGetProperty("performer", out var performerForId)
+                    ? $"ext-qobuz-artist-{GetIdAsString(performerForId.GetProperty("id"))}"
+                    : null,
+                Album = albumTitle,
+                AlbumId = albumId,
+                AlbumArtist = albumArtist,
+                Duration = track.TryGetProperty("duration", out var duration)
+                    ? duration.GetInt32()
+                    : null,
+                Track = track.TryGetProperty("track_number", out var trackNum)
+                    ? trackNum.GetInt32()
+                    : null,
+                DiscNumber = track.TryGetProperty("media_number", out var mediaNum)
+                    ? mediaNum.GetInt32()
+                    : null,
+                CoverArtUrl = GetCoverArtUrl(track)
+            },
+            Server = new SongServerData
+            {
+                IsLocal = false,
+                ExternalProvider = "qobuz",
+                ExternalId = externalId
+            }
         };
     }
 
@@ -601,17 +607,17 @@ public class QobuzMetadataService : IMusicMetadataService
         if (track.TryGetProperty("composer", out var composer) &&
             composer.TryGetProperty("name", out var composerName))
         {
-            song.Contributors = new List<string> { composerName.GetString() ?? "" };
+            song.Core.Contributors = new List<string> { composerName.GetString() ?? "" };
         }
         
         if (track.TryGetProperty("isrc", out var isrc))
         {
-            song.Isrc = isrc.GetString();
+            song.Core.Isrc = isrc.GetString();
         }
         
         if (track.TryGetProperty("copyright", out var copyright))
         {
-            song.Copyright = FormatCopyright(copyright.GetString() ?? "");
+            song.Core.Copyright = FormatCopyright(copyright.GetString() ?? "");
         }
         
         // Get release date from album
@@ -620,29 +626,29 @@ public class QobuzMetadataService : IMusicMetadataService
             if (album.TryGetProperty("release_date_original", out var releaseDate))
             {
                 var dateStr = releaseDate.GetString();
-                song.ReleaseDate = dateStr;
+                song.Core.ReleaseDate = dateStr;
                 
                 if (!string.IsNullOrEmpty(dateStr) && dateStr.Length >= 4)
                 {
                     if (int.TryParse(dateStr.Substring(0, 4), out var year))
                     {
-                        song.Year = year;
+                        song.Core.Year = year;
                     }
                 }
             }
             
             if (album.TryGetProperty("tracks_count", out var tracksCount))
             {
-                song.TotalTracks = tracksCount.GetInt32();
+                song.Core.TotalTracks = tracksCount.GetInt32();
             }
             
             if (album.TryGetProperty("genres_list", out var genres))
             {
-                song.Genre = FormatGenres(genres);
+                song.Core.Genre = FormatGenres(genres);
             }
             
             // Get large cover art
-            song.CoverArtUrlLarge = GetLargeCoverArtUrl(album);
+            song.Core.CoverArtUrlLarge = GetLargeCoverArtUrl(album);
         }
         
         return song;

@@ -311,7 +311,7 @@ public class SquidWTFMetadataService : IMusicMetadataService
         foreach (var track in searchResponse.Data.Tracks.Items.Take(limit))
         {
             var song = MapQobuzTrackToSong(track);
-            if (ShouldIncludeSong(song))
+            if (ShouldIncludeSong(song.Core))
             {
                 songs.Add(song);
             }
@@ -387,25 +387,25 @@ public class SquidWTFMetadataService : IMusicMetadataService
             foreach (var track in albumResponse.Data.Tracks.Items)
             {
                 var song = MapQobuzTrackToSong(track);
-                song.Album = album.Title;
-                song.AlbumId = album.Id;
-                song.AlbumArtist = album.Artist;
-                song.Year ??= album.Year;
-                song.Genre ??= album.Genre;
-                song.TotalTracks ??= album.SongCount;
-                song.ReleaseType ??= album.ReleaseType;
+                song.Core.Album = album.Title;
+                song.Core.AlbumId = album.Id;
+                song.Core.AlbumArtist = album.Artist;
+                song.Core.Year ??= album.Year;
+                song.Core.Genre ??= album.Genre;
+                song.Core.TotalTracks ??= album.SongCount;
+                song.Core.ReleaseType ??= album.ReleaseType;
                 
                 // Use album cover for tracks if track doesn't have one (common for tracks from /api/get-album)
-                if (string.IsNullOrEmpty(song.CoverArtUrl))
+                if (string.IsNullOrEmpty(song.Core.CoverArtUrl))
                 {
-                    song.CoverArtUrl = album.CoverArtUrl;
+                    song.Core.CoverArtUrl = album.CoverArtUrl;
                 }
-                if (string.IsNullOrEmpty(song.CoverArtUrlLarge))
+                if (string.IsNullOrEmpty(song.Core.CoverArtUrlLarge))
                 {
-                    song.CoverArtUrlLarge = album.CoverArtUrlLarge;
+                    song.Core.CoverArtUrlLarge = album.CoverArtUrlLarge;
                 }
                 
-                if (ShouldIncludeSong(song))
+                if (ShouldIncludeSong(song.Core))
                 {
                     album.Songs.Add(song);
                 }
@@ -489,7 +489,7 @@ public class SquidWTFMetadataService : IMusicMetadataService
         foreach (var track in dataResponse.Data.Items.Take(limit))
         {
             var song = MapTidalTrackToSong(track);
-            if (ShouldIncludeSong(song))
+            if (ShouldIncludeSong(song.Core))
             {
                 songs.Add(song);
             }
@@ -497,7 +497,7 @@ public class SquidWTFMetadataService : IMusicMetadataService
 
         // Filter duplicates
         songs = songs
-            .DistinctBy(s => new { s.Title, s.Artist, s.Album, s.Duration, s.ReleaseDate }).ToList();
+            .DistinctBy(s => new { s.Core.Title, s.Core.Artist, s.Core.Album, s.Core.Duration, s.Core.ReleaseDate }).ToList();
         
         return songs;
     }
@@ -607,25 +607,25 @@ public class SquidWTFMetadataService : IMusicMetadataService
                 if (item.Type == "track" && item.Item != null)
                 {
                     var song = MapTidalTrackToSong(item.Item);
-                    song.Album = album.Title;
-                    song.AlbumId = album.Id;
-                    song.AlbumArtist = album.Artist;
-                    song.Year ??= album.Year;
-                    song.Genre ??= album.Genre;
-                    song.TotalTracks ??= album.SongCount;
-                    song.ReleaseType ??= album.ReleaseType;
+                    song.Core.Album = album.Title;
+                    song.Core.AlbumId = album.Id;
+                    song.Core.AlbumArtist = album.Artist;
+                    song.Core.Year ??= album.Year;
+                    song.Core.Genre ??= album.Genre;
+                    song.Core.TotalTracks ??= album.SongCount;
+                    song.Core.ReleaseType ??= album.ReleaseType;
                     
                     // Use album cover for tracks if track doesn't have one
-                    if (string.IsNullOrEmpty(song.CoverArtUrl))
+                    if (string.IsNullOrEmpty(song.Core.CoverArtUrl))
                     {
-                        song.CoverArtUrl = album.CoverArtUrl;
+                        song.Core.CoverArtUrl = album.CoverArtUrl;
                     }
-                    if (string.IsNullOrEmpty(song.CoverArtUrlLarge))
+                    if (string.IsNullOrEmpty(song.Core.CoverArtUrlLarge))
                     {
-                        song.CoverArtUrlLarge = album.CoverArtUrlLarge;
+                        song.Core.CoverArtUrlLarge = album.CoverArtUrlLarge;
                     }
                     
-                    if (ShouldIncludeSong(song))
+                    if (ShouldIncludeSong(song.Core))
                     {
                         album.Songs.Add(song);
                     }
@@ -726,9 +726,9 @@ public class SquidWTFMetadataService : IMusicMetadataService
                 if (item.Type == "track" && item.Item != null)
                 {
                     var song = MapTidalTrackToSong(item.Item);
-                    if (ShouldIncludeSong(song))
+                    if (ShouldIncludeSong(song.Core))
                     {
-                        song.Track = songs.Count + 1;
+                        song.Core.Track = songs.Count + 1;
                         songs.Add(song);
                     }
                 }
@@ -814,28 +814,34 @@ public class SquidWTFMetadataService : IMusicMetadataService
         
         return new Song
         {
-            Id = $"ext-squidwtf-song-{externalId}",
-            Title = track.Title ?? "",
-            Artist = performerName,
-            Artists = !string.IsNullOrEmpty(performerName) ? new List<string> { performerName } : new List<string>(),
-            ArtistId = track.Performer != null ? $"ext-squidwtf-artist-{track.Performer.Id}" : null,
-            Album = track.Album?.Title ?? "",
-            AlbumId = track.Album != null ? $"ext-squidwtf-album-{track.Album.Id}" : null,
-            Duration = track.Duration,
-            Track = track.TrackNumber,
-            DiscNumber = track.MediaNumber > 0 ? track.MediaNumber : null,
-            Year = year,
-            Genre = track.Album?.Genre?.Name,
-            Isrc = track.Isrc,
-            Copyright = track.Copyright ?? track.Album?.Copyright,
-            Contributors = contributors,
-            TotalTracks = track.Album?.TracksCount,
-            CoverArtUrl = track.Album?.Image?.Thumbnail ?? track.Album?.Image?.Small,
-            CoverArtUrlLarge = track.Album?.Image?.Large,
-            IsLocal = false,
-            ExternalProvider = "squidwtf",
-            ExternalId = externalId,
-            ExplicitContentLyrics = track.ParentalWarning ? 1 : 0
+            Core = new SongCoreData
+            {
+                Id = $"ext-squidwtf-song-{externalId}",
+                Title = track.Title ?? "",
+                Artist = performerName,
+                Artists = !string.IsNullOrEmpty(performerName) ? new List<string> { performerName } : new List<string>(),
+                ArtistId = track.Performer != null ? $"ext-squidwtf-artist-{track.Performer.Id}" : null,
+                Album = track.Album?.Title ?? "",
+                AlbumId = track.Album != null ? $"ext-squidwtf-album-{track.Album.Id}" : null,
+                Duration = track.Duration,
+                Track = track.TrackNumber,
+                DiscNumber = track.MediaNumber > 0 ? track.MediaNumber : null,
+                Year = year,
+                Genre = track.Album?.Genre?.Name,
+                Isrc = track.Isrc,
+                Copyright = track.Copyright ?? track.Album?.Copyright,
+                Contributors = contributors,
+                TotalTracks = track.Album?.TracksCount,
+                CoverArtUrl = track.Album?.Image?.Thumbnail ?? track.Album?.Image?.Small,
+                CoverArtUrlLarge = track.Album?.Image?.Large,
+                ExplicitContentLyrics = track.ParentalWarning ? 1 : 0
+            },
+            Server = new SongServerData
+            {
+                IsLocal = false,
+                ExternalProvider = "squidwtf",
+                ExternalId = externalId
+            }
         };
     }
 
@@ -919,32 +925,38 @@ public class SquidWTFMetadataService : IMusicMetadataService
 
         return new Song
         {
-            Id = $"ext-squidwtf-song-{externalId}",
-            Title = title,
-            Artist = mainArtistName,
-            Artists = artistNames,
-            ArtistId = track.Artist != null 
-                ? $"ext-squidwtf-artist-{track.Artist.Id}" 
-                : (track.Artists?.FirstOrDefault() is { } firstArtist 
-                    ? $"ext-squidwtf-artist-{firstArtist.Id}" 
-                    : null),
-            Album = track.Album?.Title ?? "",
-            AlbumId = track.Album != null ? $"ext-squidwtf-album-{track.Album.Id}" : null,
-            Duration = track.Duration,
-            Track = track.TrackNumber,
-            DiscNumber = track.VolumeNumber,
-            Year = year,
-            Isrc = track.Isrc,
-            Bpm = track.Bpm,
-            ReleaseType = track.Album?.Type,
-            Copyright = track.Copyright,
-            TotalTracks = track.Album?.NumberOfTracks,
-            CoverArtUrl = GetTidalCoverUrl(track.Album?.Cover, "320x320"),
-            CoverArtUrlLarge = GetTidalCoverUrl(track.Album?.Cover, "1280x1280"),
-            IsLocal = false,
-            ExternalProvider = "squidwtf",
-            ExternalId = externalId,
-            ExplicitContentLyrics = track.Explicit ? 1 : 0
+            Core = new SongCoreData
+            {
+                Id = $"ext-squidwtf-song-{externalId}",
+                Title = title,
+                Artist = mainArtistName,
+                Artists = artistNames,
+                ArtistId = track.Artist != null 
+                    ? $"ext-squidwtf-artist-{track.Artist.Id}" 
+                    : (track.Artists?.FirstOrDefault() is { } firstArtist 
+                        ? $"ext-squidwtf-artist-{firstArtist.Id}" 
+                        : null),
+                Album = track.Album?.Title ?? "",
+                AlbumId = track.Album != null ? $"ext-squidwtf-album-{track.Album.Id}" : null,
+                Duration = track.Duration,
+                Track = track.TrackNumber,
+                DiscNumber = track.VolumeNumber,
+                Year = year,
+                Isrc = track.Isrc,
+                Bpm = track.Bpm,
+                ReleaseType = track.Album?.Type,
+                Copyright = track.Copyright,
+                TotalTracks = track.Album?.NumberOfTracks,
+                CoverArtUrl = GetTidalCoverUrl(track.Album?.Cover, "320x320"),
+                CoverArtUrlLarge = GetTidalCoverUrl(track.Album?.Cover, "1280x1280"),
+                ExplicitContentLyrics = track.Explicit ? 1 : 0
+            },
+            Server = new SongServerData
+            {
+                IsLocal = false,
+                ExternalProvider = "squidwtf",
+                ExternalId = externalId
+            }
         };
     }
 
@@ -975,31 +987,37 @@ public class SquidWTFMetadataService : IMusicMetadataService
         
         return new Song
         {
-            Id = $"ext-squidwtf-song-{externalId}",
-            Title = track.Title ?? "",
-            Artist = mainArtistName,
-            Artists = artistNames,
-            ArtistId = track.Artist != null 
-                ? $"ext-squidwtf-artist-{track.Artist.Id}" 
-                : (track.Artists?.FirstOrDefault() is { } firstTrackInfoArtist 
-                    ? $"ext-squidwtf-artist-{firstTrackInfoArtist.Id}" 
-                    : null),
-            Album = track.Album?.Title ?? "",
-            AlbumId = track.Album != null ? $"ext-squidwtf-album-{track.Album.Id}" : null,
-            Duration = track.Duration,
-            Track = track.TrackNumber,
-            DiscNumber = track.VolumeNumber,
-            Year = year,
-            Isrc = track.Isrc,
-            Bpm = track.Bpm,
-            Copyright = track.Copyright,
-            TotalTracks = track.Album?.NumberOfTracks,
-            CoverArtUrl = GetTidalCoverUrl(track.Album?.Cover, "320x320"),
-            CoverArtUrlLarge = GetTidalCoverUrl(track.Album?.Cover, "1280x1280"),
-            IsLocal = false,
-            ExternalProvider = "squidwtf",
-            ExternalId = externalId,
-            ExplicitContentLyrics = track.Explicit ? 1 : 0
+            Core = new SongCoreData
+            {
+                Id = $"ext-squidwtf-song-{externalId}",
+                Title = track.Title ?? "",
+                Artist = mainArtistName,
+                Artists = artistNames,
+                ArtistId = track.Artist != null 
+                    ? $"ext-squidwtf-artist-{track.Artist.Id}" 
+                    : (track.Artists?.FirstOrDefault() is { } firstTrackInfoArtist 
+                        ? $"ext-squidwtf-artist-{firstTrackInfoArtist.Id}" 
+                        : null),
+                Album = track.Album?.Title ?? "",
+                AlbumId = track.Album != null ? $"ext-squidwtf-album-{track.Album.Id}" : null,
+                Duration = track.Duration,
+                Track = track.TrackNumber,
+                DiscNumber = track.VolumeNumber,
+                Year = year,
+                Isrc = track.Isrc,
+                Bpm = track.Bpm,
+                Copyright = track.Copyright,
+                TotalTracks = track.Album?.NumberOfTracks,
+                CoverArtUrl = GetTidalCoverUrl(track.Album?.Cover, "320x320"),
+                CoverArtUrlLarge = GetTidalCoverUrl(track.Album?.Cover, "1280x1280"),
+                ExplicitContentLyrics = track.Explicit ? 1 : 0
+            },
+            Server = new SongServerData
+            {
+                IsLocal = false,
+                ExternalProvider = "squidwtf",
+                ExternalId = externalId
+            }
         };
     }
 
@@ -1152,7 +1170,7 @@ public class SquidWTFMetadataService : IMusicMetadataService
     /// <summary>
     /// Determines whether a song should be included based on the explicit content filter setting
     /// </summary>
-    private bool ShouldIncludeSong(Song song)
+    private bool ShouldIncludeSong(SongCoreData song)
     {
         if (song.ExplicitContentLyrics == null)
             return true;

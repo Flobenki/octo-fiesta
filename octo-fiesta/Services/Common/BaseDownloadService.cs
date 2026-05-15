@@ -251,18 +251,18 @@ public abstract class BaseDownloadService : IDownloadService
         // Get song metadata (with correct AlbumArtist)
         Song? song = null;
         var tempSong = await MetadataService.GetSongAsync(externalProvider, externalId);
-        if (tempSong != null && !string.IsNullOrEmpty(tempSong.AlbumId) && !PlaylistIdHelper.IsExternalPlaylist(tempSong.AlbumId))
+        if (tempSong != null && !string.IsNullOrEmpty(tempSong.Core.AlbumId) && !PlaylistIdHelper.IsExternalPlaylist(tempSong.Core.AlbumId))
         {
-            var albumExternalId = ExtractExternalIdFromAlbumId(tempSong.AlbumId);
+            var albumExternalId = ExtractExternalIdFromAlbumId(tempSong.Core.AlbumId);
             if (!string.IsNullOrEmpty(albumExternalId))
             {
                 var album = await MetadataService.GetAlbumAsync(externalProvider, albumExternalId);
                 if (album != null)
                 {
-                    song = album.Songs.FirstOrDefault(s => s.ExternalId == externalId);
+                    song = album.Songs.FirstOrDefault(s => s.Server.ExternalId == externalId);
                     if (song == null && !string.IsNullOrEmpty(album.Artist))
                     {
-                        tempSong.AlbumArtist = album.Artist;
+                        tempSong.Core.AlbumArtist = album.Artist;
                     }
                 }
             }
@@ -287,7 +287,7 @@ public abstract class BaseDownloadService : IDownloadService
         // Build permanent path
         var permanentPath = PathHelper.BuildTrackPath(
             DownloadPath,
-            song,
+            song.Core,
             extension,
             SubsonicSettings.FolderTemplate,
             downloadedQuality);
@@ -322,7 +322,7 @@ public abstract class BaseDownloadService : IDownloadService
         _metadataPathCache.TryRemove(cacheKey, out _);
 
         // Register in mappings
-        song.LocalPath = permanentPath;
+        song.Server.LocalPath = permanentPath;
         await LocalLibraryService.RegisterDownloadedSongAsync(song, permanentPath, downloadedQuality);
 
         // Trigger library scan and migrate playlists in background
@@ -493,9 +493,9 @@ public abstract class BaseDownloadService : IDownloadService
             string localPath;
             await using (downloadResult.DownloadStream)
             {
-                localPath = await SaveDownloadStreamToFileAsync(downloadResult, song, isCache, cancellationToken);
+                localPath = await SaveDownloadStreamToFileAsync(downloadResult, song.Core, isCache, cancellationToken);
             }
-            song.LocalPath = localPath;
+            song.Server.LocalPath = localPath;
 
             ourDownloadInfo.Status = DownloadStatus.Completed;
             ourDownloadInfo.LocalPath = localPath;
@@ -514,7 +514,7 @@ public abstract class BaseDownloadService : IDownloadService
                     if (playlistId != null)
                     {
                         Logger.LogInformation("Track {SongId} belongs to playlist {PlaylistId}, adding to M3U", songId, playlistId);
-                        await PlaylistSyncService.AddTrackToM3UAsync(playlistId, song, localPath, isFullPlaylistDownload: false);
+                        await PlaylistSyncService.AddTrackToM3UAsync(playlistId, song.Core, localPath, isFullPlaylistDownload: false);
                     }
                 }
                 catch (Exception ex)
@@ -542,9 +542,9 @@ public abstract class BaseDownloadService : IDownloadService
                 });
 
                 // If download mode is Album and triggering is enabled, start background download of remaining tracks
-                if (triggerAlbumDownload && SubsonicSettings.DownloadMode == DownloadMode.Album && !string.IsNullOrEmpty(song.AlbumId))
+                if (triggerAlbumDownload && SubsonicSettings.DownloadMode == DownloadMode.Album && !string.IsNullOrEmpty(song.Core.AlbumId))
                 {
-                    var albumExternalId = ExtractExternalIdFromAlbumId(song.AlbumId);
+                    var albumExternalId = ExtractExternalIdFromAlbumId(song.Core.AlbumId);
                     if (!string.IsNullOrEmpty(albumExternalId))
                     {
                         Logger.LogInformation("Download mode is Album, triggering background download for album {AlbumId}", albumExternalId);
@@ -624,10 +624,10 @@ public abstract class BaseDownloadService : IDownloadService
         Song? song = null;
 
         var tempSong = await MetadataService.GetSongAsync(externalProvider, externalId);
-        if (tempSong != null && !string.IsNullOrEmpty(tempSong.AlbumId)
-            && !PlaylistIdHelper.IsExternalPlaylist(tempSong.AlbumId))
+        if (tempSong != null && !string.IsNullOrEmpty(tempSong.Core.AlbumId)
+            && !PlaylistIdHelper.IsExternalPlaylist(tempSong.Core.AlbumId))
         {
-            var albumExternalId = ExtractExternalIdFromAlbumId(tempSong.AlbumId);
+            var albumExternalId = ExtractExternalIdFromAlbumId(tempSong.Core.AlbumId);
             if (!string.IsNullOrEmpty(albumExternalId))
             {
                 // Get full album with correct AlbumArtist
@@ -635,12 +635,12 @@ public abstract class BaseDownloadService : IDownloadService
                 if (album != null)
                 {
                     // Find the track in the album to get full metadata including AlbumArtist
-                    song = album.Songs.FirstOrDefault(s => s.ExternalId == externalId);
+                    song = album.Songs.FirstOrDefault(s => s.Server.ExternalId == externalId);
 
                     // If track not found in album (e.g., bonus track), use tempSong with album artist
                     if (song == null && !string.IsNullOrEmpty(album.Artist))
                     {
-                        tempSong.AlbumArtist = album.Artist;
+                        tempSong.Core.AlbumArtist = album.Artist;
                     }
                 }
             }
@@ -668,7 +668,7 @@ public abstract class BaseDownloadService : IDownloadService
     /// <param name="result">DownloadResult containing download Stream and quality string.</param>
     /// <param name="song">Song metadata to interpolate into storage template.</param>
     /// <returns></returns>
-    protected async Task<string> SaveDownloadStreamToFileAsync(DownloadResult result, Song song, bool toCache, CancellationToken cancellationToken)
+    protected async Task<string> SaveDownloadStreamToFileAsync(DownloadResult result, SongCoreData song, bool toCache, CancellationToken cancellationToken)
     {
         var basePath = toCache ? CachePath : DownloadPath;
         var outputPath = PathHelper.BuildTrackPath(basePath, song, result.Extension, SubsonicSettings.FolderTemplate, result.DownloadedQuality);
@@ -730,7 +730,7 @@ public abstract class BaseDownloadService : IDownloadService
         }
 
         var tracksToDownload = album.Songs
-            .Where(s => !string.IsNullOrEmpty(s.ExternalId) && (string.IsNullOrEmpty(excludeTrackExternalId) || s.ExternalId != excludeTrackExternalId))
+            .Where(s => !string.IsNullOrEmpty(s.Server.ExternalId) && (string.IsNullOrEmpty(excludeTrackExternalId) || s.Server.ExternalId != excludeTrackExternalId))
             .ToList();
 
         Logger.LogInformation("Found {Count} tracks to download for album '{AlbumTitle}'",
@@ -740,36 +740,36 @@ public abstract class BaseDownloadService : IDownloadService
         {
             try
             {
-                var existingPath = await LocalLibraryService.GetLocalPathForExternalSongAsync(ProviderName, track.ExternalId!);
+                var existingPath = await LocalLibraryService.GetLocalPathForExternalSongAsync(ProviderName, track.Server.ExternalId!);
                 if (existingPath != null && IOFile.Exists(existingPath))
                 {
-                    Logger.LogDebug("Track {TrackId} already downloaded, skipping", track.ExternalId);
+                    Logger.LogDebug("Track {TrackId} already downloaded, skipping", track.Server.ExternalId);
                     continue;
                 }
 
                 // Check if download is already in progress or recently completed
-                var songId = $"ext-{ProviderName}-{track.ExternalId}";
+                var songId = $"ext-{ProviderName}-{track.Server.ExternalId}";
                 if (ActiveDownloads.TryGetValue(songId, out var activeDownload))
                 {
                     if (activeDownload.Status == DownloadStatus.InProgress)
                     {
-                        Logger.LogDebug("Track {TrackId} download already in progress, skipping", track.ExternalId);
+                        Logger.LogDebug("Track {TrackId} download already in progress, skipping", track.Server.ExternalId);
                         continue;
                     }
 
                     if (activeDownload.Status == DownloadStatus.Completed)
                     {
-                        Logger.LogDebug("Track {TrackId} already downloaded in this session, skipping", track.ExternalId);
+                        Logger.LogDebug("Track {TrackId} already downloaded in this session, skipping", track.Server.ExternalId);
                         continue;
                     }
                 }
 
-                Logger.LogInformation("Downloading track '{Title}' from album '{Album}'", track.Title, album.Title);
-                await DownloadSongInternalAsync(ProviderName, track.ExternalId!, triggerAlbumDownload: false, forcePermanent, cancellationToken);
+                Logger.LogInformation("Downloading track '{Title}' from album '{Album}'", track.Core.Title, album.Title);
+                await DownloadSongInternalAsync(ProviderName, track.Server.ExternalId!, triggerAlbumDownload: false, forcePermanent, cancellationToken);
             }
             catch (Exception ex)
             {
-                Logger.LogWarning(ex, "Failed to download track {TrackId} '{Title}'", track.ExternalId, track.Title);
+                Logger.LogWarning(ex, "Failed to download track {TrackId} '{Title}'", track.Server.ExternalId, track.Core.Title);
             }
         }
 
@@ -783,7 +783,7 @@ public abstract class BaseDownloadService : IDownloadService
     /// <summary>
     /// Writes ID3/Vorbis metadata and cover art to the audio file
     /// </summary>
-    protected async Task WriteMetadataAsync(string filePath, Song song, CancellationToken cancellationToken)
+    protected async Task WriteMetadataAsync(string filePath, SongCoreData song, CancellationToken cancellationToken)
     {
         try
         {
@@ -1056,16 +1056,16 @@ public abstract class BaseDownloadService : IDownloadService
 
             // If AlbumArtist is not set but we have an AlbumId, fetch the album to get the correct AlbumArtist.
             // This ensures cache lookup uses the same path as when the file was originally downloaded.
-            if (string.IsNullOrEmpty(song.AlbumArtist) && !string.IsNullOrEmpty(song.AlbumId))
+            if (string.IsNullOrEmpty(song.Core.AlbumArtist) && !string.IsNullOrEmpty(song.Core.AlbumId))
             {
-                var albumExternalId = ExtractExternalIdFromAlbumId(song.AlbumId);
+                var albumExternalId = ExtractExternalIdFromAlbumId(song.Core.AlbumId);
                 if (!string.IsNullOrEmpty(albumExternalId))
                 {
                     var album = await MetadataService.GetAlbumAsync(provider, albumExternalId);
                     if (album != null)
                     {
                         // Find the track in the album to get full metadata including AlbumArtist
-                        var albumSong = album.Songs.FirstOrDefault(s => s.ExternalId == externalId);
+                        var albumSong = album.Songs.FirstOrDefault(s => s.Server.ExternalId == externalId);
                         if (albumSong != null)
                         {
                             song = albumSong;
@@ -1073,13 +1073,13 @@ public abstract class BaseDownloadService : IDownloadService
                         else
                         {
                             // Use album artist even if track not found in album
-                            song.AlbumArtist = album.Artist;
+                            song.Core.AlbumArtist = album.Artist;
                         }
                     }
                 }
             }
 
-            var artistForPath = song.AlbumArtist ?? song.Artist;
+            var artistForPath = song.Core.AlbumArtist ?? song.Core.Artist;
 
             // Build the expected file name from the last segment of the template.
             // We don't know the quality at lookup time, so we search by file name pattern
@@ -1088,7 +1088,7 @@ public abstract class BaseDownloadService : IDownloadService
             var templateSegments = template.Split('/');
             var fileNameTemplate = templateSegments[^1];
 
-            var expectedFileName = PathHelper.ReplacePlaceholders(fileNameTemplate, song, artistForPath, null);
+            var expectedFileName = PathHelper.ReplacePlaceholders(fileNameTemplate, song.Core, artistForPath, null);
             var safeFileName = PathHelper.SanitizeFileName(expectedFileName);
 
             // Search from the cache root for any file matching the expected name,

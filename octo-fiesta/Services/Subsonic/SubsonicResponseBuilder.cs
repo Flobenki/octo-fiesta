@@ -95,7 +95,7 @@ public class SubsonicResponseBuilder
     /// </summary>
     public IActionResult CreateAlbumResponse(string format, Album album)
     {
-        var totalDuration = album.Songs.Sum(s => s.Duration ?? 0);
+        var totalDuration = album.Songs.Sum(s => s.Core.Duration ?? 0);
         
         if (format == "json")
         {
@@ -151,7 +151,7 @@ public class SubsonicResponseBuilder
     /// </summary>
     public IActionResult CreatePlaylistAsAlbumResponse(string format, ExternalPlaylist playlist, List<Song> tracks)
     {
-        var totalDuration = tracks.Sum(s => s.Duration ?? 0);
+        var totalDuration = tracks.Sum(s => s.Core.Duration ?? 0);
         
         // Build artist name with emoji and curator
         var artistName = $"🎵 {char.ToUpper(playlist.Provider[0])}{playlist.Provider.Substring(1)}";
@@ -287,21 +287,21 @@ public class SubsonicResponseBuilder
     /// </summary>
     public Dictionary<string, object> ConvertSongToJson(Song song)
     {
-        var (suffix, contentType, bitRate) = GetSuffixContentTypeAndBitrate(song);
+        var (suffix, contentType, bitRate) = GetSuffixContentTypeAndBitrate(song.Server);
 
         long size = 0;
         string? created = null;
         try
         {
-            if (!string.IsNullOrEmpty(song.LocalPath) && System.IO.File.Exists(song.LocalPath))
+            if (!string.IsNullOrEmpty(song.Server.LocalPath) && System.IO.File.Exists(song.Server.LocalPath))
             {
-                var fi = new System.IO.FileInfo(song.LocalPath);
+                var fi = new System.IO.FileInfo(song.Server.LocalPath);
                 size = fi.Length;
                 created = fi.LastWriteTimeUtc.ToString("o");
             }
-            else if (!string.IsNullOrEmpty(song.ReleaseDate))
+            else if (!string.IsNullOrEmpty(song.Core.ReleaseDate))
             {
-                if (System.DateTime.TryParse(song.ReleaseDate, out var dt))
+                if (System.DateTime.TryParse(song.Core.ReleaseDate, out var dt))
                 {
                     created = dt.ToUniversalTime().ToString("o");
                 }
@@ -316,42 +316,42 @@ public class SubsonicResponseBuilder
             // best effort: ignore permission issues when determining size/created
         }
 
-        if (size == 0 && (song.Duration ?? 0) > 0 && bitRate > 0)
+        if (size == 0 && (song.Core.Duration ?? 0) > 0 && bitRate > 0)
         {
             // size (bytes) = bitRate (kbps) * 125 (bytes/sec per kbps) * duration (sec)
-            size = (long)bitRate * 125L * (long)(song.Duration ?? 0);
+            size = (long)bitRate * 125L * (long)(song.Core.Duration ?? 0);
         }
 
         var result = new Dictionary<string, object>
         {
-            ["id"] = song.Id,
-            ["parent"] = song.AlbumId ?? "",
+            ["id"] = song.Core.Id,
+            ["parent"] = song.Core.AlbumId ?? "",
             ["isDir"] = false,
-            ["title"] = song.Title,
-            ["album"] = song.Album ?? "",
-            ["artist"] = song.Artist ?? "",
-            ["albumId"] = song.AlbumId ?? "",
-            ["artistId"] = song.ArtistId ?? "",
-            ["duration"] = song.Duration ?? 0,
-            ["track"] = song.Track ?? 0,
-            ["discNumber"] = song.DiscNumber ?? 0,
-            ["year"] = song.Year ?? 0,
+            ["title"] = song.Core.Title,
+            ["album"] = song.Core.Album ?? "",
+            ["artist"] = song.Core.Artist ?? "",
+            ["albumId"] = song.Core.AlbumId ?? "",
+            ["artistId"] = song.Core.ArtistId ?? "",
+            ["duration"] = song.Core.Duration ?? 0,
+            ["track"] = song.Core.Track ?? 0,
+            ["discNumber"] = song.Core.DiscNumber ?? 0,
+            ["year"] = song.Core.Year ?? 0,
             ["suffix"] = suffix,
             ["contentType"] = contentType,
             ["bitRate"] = bitRate,
             ["size"] = size,
             ["type"] = "music",
             ["isVideo"] = false,
-            ["isExternal"] = !song.IsLocal,
-            ["displayArtist"] = song.Artist ?? "",
-            ["displayAlbumArtist"] = song.Artist ?? "",
+            ["isExternal"] = !song.Server.IsLocal,
+            ["displayArtist"] = song.Core.Artist ?? "",
+            ["displayAlbumArtist"] = song.Core.Artist ?? "",
             ["displayComposer"] = ""
         };
 
         // Only include coverArt if the song has a cover URL (avoids broken images for songs without covers)
-        if (song.IsLocal || !string.IsNullOrEmpty(song.CoverArtUrl))
+        if (song.Server.IsLocal || !string.IsNullOrEmpty(song.Core.CoverArtUrl))
         {
-            result["coverArt"] = song.Id;
+            result["coverArt"] = song.Core.Id;
         }
 
         if (created != null)
@@ -418,25 +418,25 @@ public class SubsonicResponseBuilder
     /// </summary>
     public XElement ConvertSongToXml(Song song, XNamespace ns, string? parentAlbumId = null)
     {
-        var isSquid = !string.IsNullOrEmpty(song.ExternalProvider) && song.ExternalProvider.Equals("SquidWTF", System.StringComparison.OrdinalIgnoreCase);
+        var isSquid = !string.IsNullOrEmpty(song.Server.ExternalProvider) && song.Server.ExternalProvider.Equals("SquidWTF", System.StringComparison.OrdinalIgnoreCase);
 
         // albumId/parent prefer explicit Song.AlbumId, otherwise fall back to provided parentAlbumId
-        var albumId = song.AlbumId ?? parentAlbumId ?? string.Empty;
+        var albumId = song.Core.AlbumId ?? parentAlbumId ?? string.Empty;
 
         long size = 0;
         string? created = null;
         try
         {
             // If we have a local path, try to get file size & last write time
-            if (!string.IsNullOrEmpty(song.LocalPath) && System.IO.File.Exists(song.LocalPath))
+            if (!string.IsNullOrEmpty(song.Server.LocalPath) && System.IO.File.Exists(song.Server.LocalPath))
             {
-                var fi = new System.IO.FileInfo(song.LocalPath);
+                var fi = new System.IO.FileInfo(song.Server.LocalPath);
                 size = fi.Length;
                 created = fi.LastWriteTimeUtc.ToString("o");
             }
-            else if (!string.IsNullOrEmpty(song.ReleaseDate))
+            else if (!string.IsNullOrEmpty(song.Core.ReleaseDate))
             {
-                if (System.DateTime.TryParse(song.ReleaseDate, out var dt))
+                if (System.DateTime.TryParse(song.Core.ReleaseDate, out var dt))
                 {
                     created = dt.ToUniversalTime().ToString("o");
                 }
@@ -447,25 +447,25 @@ public class SubsonicResponseBuilder
         }
 
         // Determine suffix, contentType and bit rate (kbps), and estimate size if missing
-        var (suffix, contentType, bitRate) = GetSuffixContentTypeAndBitrate(song);
-        if (size == 0 && (song.Duration ?? 0) > 0 && bitRate > 0)
+        var (suffix, contentType, bitRate) = GetSuffixContentTypeAndBitrate(song.Server);
+        if (size == 0 && (song.Core.Duration ?? 0) > 0 && bitRate > 0)
         {
             // size (bytes) = bitRate (kbps) * 125 (bytes/sec per kbps) * duration (sec)
-            var duration = (long)(song.Duration ?? 0);
+            var duration = (long)(song.Core.Duration ?? 0);
             size = (long)bitRate * 125L * duration;
         }
 
         var songElement = new XElement(ns + "song",
-            new XAttribute("id", song.Id),
-            new XAttribute("title", song.Title),
-            new XAttribute("album", song.Album ?? ""),
+            new XAttribute("id", song.Core.Id),
+            new XAttribute("title", song.Core.Title),
+            new XAttribute("album", song.Core.Album ?? ""),
             new XAttribute("albumId", albumId),
             new XAttribute("parent", albumId),
-            new XAttribute("artist", song.Artist ?? ""),
-            new XAttribute("duration", song.Duration ?? 0),
-            new XAttribute("track", song.Track ?? 0),
-            new XAttribute("discNumber", song.DiscNumber ?? 0),
-            new XAttribute("year", song.Year ?? 0),
+            new XAttribute("artist", song.Core.Artist ?? ""),
+            new XAttribute("duration", song.Core.Duration ?? 0),
+            new XAttribute("track", song.Core.Track ?? 0),
+            new XAttribute("discNumber", song.Core.DiscNumber ?? 0),
+            new XAttribute("year", song.Core.Year ?? 0),
             new XAttribute("suffix", suffix),
             new XAttribute("contentType", contentType),
             new XAttribute("type", "music"),
@@ -473,21 +473,21 @@ public class SubsonicResponseBuilder
             new XAttribute("bitRate", bitRate),
             new XAttribute("size", size),
             new XAttribute("isDir", "false"),
-            new XAttribute("isExternal", (!song.IsLocal).ToString().ToLower()),
-            new XAttribute("displayArtist", song.Artist ?? ""),
-            new XAttribute("displayAlbumArtist", song.Artist ?? ""),
+            new XAttribute("isExternal", (!song.Server.IsLocal).ToString().ToLower()),
+            new XAttribute("displayArtist", song.Core.Artist ?? ""),
+            new XAttribute("displayAlbumArtist", song.Core.Artist ?? ""),
             new XAttribute("displayComposer", "")
         );
 
         // Only include coverArt if the song has a cover URL (avoids broken images for songs without covers)
-        if (song.IsLocal || !string.IsNullOrEmpty(song.CoverArtUrl))
+        if (song.Server.IsLocal || !string.IsNullOrEmpty(song.Core.CoverArtUrl))
         {
-            songElement.Add(new XAttribute("coverArt", song.Id));
+            songElement.Add(new XAttribute("coverArt", song.Core.Id));
         }
 
-        if (!string.IsNullOrEmpty(song.ArtistId))
+        if (!string.IsNullOrEmpty(song.Core.ArtistId))
         {
-            songElement.Add(new XAttribute("artistId", song.ArtistId));
+            songElement.Add(new XAttribute("artistId", song.Core.ArtistId));
         }
 
         if (!string.IsNullOrEmpty(created))
@@ -504,7 +504,7 @@ public class SubsonicResponseBuilder
     /// </summary>
     public XElement ConvertAlbumToXml(Album album, XNamespace ns)
     {
-        var totalDuration = album.Songs?.Sum(s => s.Duration ?? 0) ?? 0;
+        var totalDuration = album.Songs?.Sum(s => s.Core.Duration ?? 0) ?? 0;
         var element = new XElement(ns + "album",
             new XAttribute("id", album.Id),
             new XAttribute("name", album.Title),
@@ -589,7 +589,7 @@ public class SubsonicResponseBuilder
         int bitRate = 128;
         if (song != null)
         {
-            var (suffix, _, br) = GetSuffixContentTypeAndBitrate(song);
+            var (suffix, _, br) = GetSuffixContentTypeAndBitrate(song.Server);
             container = suffix == "Remote" ? "mp3" : suffix;
             bitRate = br > 0 ? br : 128;
         }
@@ -619,7 +619,7 @@ public class SubsonicResponseBuilder
     /// Determines the file suffix, MIME content type, and bitrate based on the song's provider and local path.
     /// Supports FLAC, M4A (AAC), and MP3 formats for local files, and provider-specific formats for external files.
     /// </summary>
-    private static (string suffix, string contentType, int bitRate) GetSuffixContentTypeAndBitrate(Song song)
+    private static (string suffix, string contentType, int bitRate) GetSuffixContentTypeAndBitrate(SongServerData song)
     {
         // For cached/downloaded files, determine format from file extension
         if (!string.IsNullOrEmpty(song.LocalPath))

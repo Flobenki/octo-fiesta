@@ -41,10 +41,16 @@ public class BaseDownloadServiceCleanupTests : IDisposable
             .Setup(x => x.GetSongAsync("fake", "123"))
             .ReturnsAsync(new Song
             {
-                ExternalId = "123",
-                Title = "Track",
-                Artist = "Artist",
-                Album = "Album"
+                Core = new SongCoreData
+                {
+                    Title = "Track",
+                    Artist = "Artist",
+                    Album = "Album"
+                },
+                Server = new SongServerData
+                {
+                    ExternalId = "123"
+                }
             });
 
         var httpClientFactoryMock = new Mock<IHttpClientFactory>();

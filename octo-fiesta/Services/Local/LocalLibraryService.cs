@@ -84,7 +84,7 @@ public class LocalLibraryService : ILocalLibraryService
 
 public async Task RegisterDownloadedSongAsync(Song song, string localPath, string? downloadedQuality = null)
     {
-        if (song.ExternalProvider == null || song.ExternalId == null) return;
+        if (song.Server.ExternalProvider == null || song.Server.ExternalId == null) return;
         
         // Load mappings first (this acquires the lock internally if needed)
         var mappings = await LoadMappingsAsync();
@@ -92,16 +92,16 @@ public async Task RegisterDownloadedSongAsync(Song song, string localPath, strin
         await _lock.WaitAsync();
         try
         {
-            var key = $"{song.ExternalProvider}:{song.ExternalId}";
+            var key = $"{song.Server.ExternalProvider}:{song.Server.ExternalId}";
             
             mappings[key] = new LocalSongMapping
             {
-                ExternalProvider = song.ExternalProvider,
-                ExternalId = song.ExternalId,
+                ExternalProvider = song.Server.ExternalProvider,
+                ExternalId = song.Server.ExternalId,
                 LocalPath = localPath,
-                Title = song.Title,
-                Artist = song.Artist,
-                Album = song.Album,
+                Title = song.Core.Title,
+                Artist = song.Core.Artist,
+                Album = song.Core.Album,
                 DownloadedAt = DateTime.UtcNow,
                 DownloadedQuality = downloadedQuality
             };
@@ -163,9 +163,9 @@ public async Task RegisterDownloadedSongAsync(Song song, string localPath, strin
                     return null;
                 }
 
-                title = externalSong.Title;
-                artist = externalSong.Artist;
-                album = externalSong.Album;
+                title = externalSong.Core.Title;
+                artist = externalSong.Core.Artist;
+                album = externalSong.Core.Album;
             }
 
             var queryText = string.Join(" ", new[] { artist, title });

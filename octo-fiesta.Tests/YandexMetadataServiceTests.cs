@@ -337,22 +337,22 @@ public class YandexMetadataServiceTests
         Assert.Equal(2, result.Count);
         
         // First track
-        Assert.Equal("Riders on the Storm", result[0].Title);
-        Assert.Equal("The Doors", result[0].Artist);
-        Assert.Equal("ext-yandex-artist-1000010", result[0].ArtistId);
-        Assert.Equal("Rock Forever!", result[0].Album); // Album should be playlist name
-        Assert.Equal("pl-yandex-f3063016-5636-454e-916e-00a756e9b25d", result[0].AlbumId);
-        Assert.Equal(1, result[0].Track); // Track index starts at 1
-        Assert.Equal("ext-yandex-song-100001:1000011", result[0].Id);
-        Assert.Equal("yandex", result[0].ExternalProvider);
-        Assert.Equal("100001:1000011", result[0].ExternalId);
+        Assert.Equal("Riders on the Storm", result[0].Core.Title);
+        Assert.Equal("The Doors", result[0].Core.Artist);
+        Assert.Equal("ext-yandex-artist-1000010", result[0].Core.ArtistId);
+        Assert.Equal("Rock Forever!", result[0].Core.Album); // Album should be playlist name
+        Assert.Equal("pl-yandex-f3063016-5636-454e-916e-00a756e9b25d", result[0].Core.AlbumId);
+        Assert.Equal(1, result[0].Core.Track); // Track index starts at 1
+        Assert.Equal("ext-yandex-song-100001:1000011", result[0].Core.Id);
+        Assert.Equal("yandex", result[0].Server.ExternalProvider);
+        Assert.Equal("100001:1000011", result[0].Server.ExternalId);
         
         // Second track
-        Assert.Equal("House of Memories", result[1].Title);
-        Assert.Equal("Panic! At The Disco", result[1].Artist);
-        Assert.Equal("Rock Forever!", result[1].Album); // Album should be playlist name
-        Assert.Equal(2, result[1].Track); // Track index increments
-        Assert.Equal("ext-yandex-song-300003:3000033", result[1].Id);
+        Assert.Equal("House of Memories", result[1].Core.Title);
+        Assert.Equal("Panic! At The Disco", result[1].Core.Artist);
+        Assert.Equal("Rock Forever!", result[1].Core.Album); // Album should be playlist name
+        Assert.Equal(2, result[1].Core.Track); // Track index increments
+        Assert.Equal("ext-yandex-song-300003:3000033", result[1].Core.Id);
     }
     
     [Fact]
@@ -442,7 +442,7 @@ public class YandexMetadataServiceTests
         // Assert
         Assert.NotNull(result);
         Assert.Single(result);
-        Assert.Equal("Unknown Playlist", result[0].Album);
+        Assert.Equal("Unknown Playlist", result[0].Core.Album);
     }
     
     #endregion
@@ -557,10 +557,10 @@ public class YandexMetadataServiceTests
         Assert.NotNull(result);
         // second result marked as "available": false and shouldn't appear in results
         Assert.Equal(2, result.Count);
-        Assert.Equal("Track 1", result[0].Title);
-        Assert.Equal("Artist 1", result[0].Artist);
-        Assert.Equal("Album 3", result[1].Album);
-        Assert.Equal("ext-yandex-album-30000", result[1].AlbumId);
+        Assert.Equal("Track 1", result[0].Core.Title);
+        Assert.Equal("Artist 1", result[0].Core.Artist);
+        Assert.Equal("Album 3", result[1].Core.Album);
+        Assert.Equal("ext-yandex-album-30000", result[1].Core.AlbumId);
     }
     
     #endregion
@@ -770,12 +770,12 @@ public class YandexMetadataServiceTests
         
         // Assert
         Assert.NotNull(result);
-        Assert.Equal("ABC", result.Title);
-        Assert.Equal("Otica", result.Artist);
-        Assert.Equal("ATL", result.Album);
-        Assert.Equal("CoolLabel", result.Label);
-        Assert.Equal(2021, result.Year);
-        Assert.Equal("2021-09-10", result.ReleaseDate);
+        Assert.Equal("ABC", result.Core.Title);
+        Assert.Equal("Otica", result.Core.Artist);
+        Assert.Equal("ATL", result.Core.Album);
+        Assert.Equal("CoolLabel", result.Core.Label);
+        Assert.Equal(2021, result.Core.Year);
+        Assert.Equal("2021-09-10", result.Core.ReleaseDate);
     }
     
     [Fact]
@@ -860,8 +860,8 @@ public class YandexMetadataServiceTests
         Assert.Equal(2016, result.Year);
         // first song marked "available": false
         Assert.Equal(2, result.Songs.Count);
-        Assert.Equal("Someone In The Crowd", result.Songs[0].Title);
-        Assert.Equal("Mia & Sebastian’s Theme", result.Songs[1].Title);
+        Assert.Equal("Someone In The Crowd", result.Songs[0].Core.Title);
+        Assert.Equal("Mia & Sebastian’s Theme", result.Songs[1].Core.Title);
     }
     
     [Fact]

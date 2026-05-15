@@ -97,7 +97,7 @@ public class QobuzDownloadService : BaseDownloadService
         // Get the download URL with signature
         var downloadInfo = await GetTrackDownloadUrlAsync(trackId, cancellationToken);
         
-        Logger.LogInformation("Download URL obtained for: {Title} - {Artist}", song.Title, song.Artist);
+        Logger.LogInformation("Download URL obtained for: {Title} - {Artist}", song.Core.Title, song.Core.Artist);
         Logger.LogInformation("Quality: {BitDepth}bit/{SamplingRate}kHz, Format: {MimeType}", 
             downloadInfo.BitDepth, downloadInfo.SamplingRate, downloadInfo.MimeType);
 

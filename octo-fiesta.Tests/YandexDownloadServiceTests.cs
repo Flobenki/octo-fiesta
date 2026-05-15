@@ -267,16 +267,22 @@ public class YandexDownloadServiceTests : IDisposable
             .Setup(s => s.GetSongAsync("yandex", "123456"))
             .ReturnsAsync(new Song
             {
-                Id = "ext-yandex-song-123456",
-                Title = "Test Song",
-                Artist = "Test Artist",
-                ArtistId = "ext-yandex-artist-123456",
-                Album = "Test Album",
-                AlbumId = "ext-yandex-album-123456",
-                Duration = 15,
-                IsLocal = false,
-                ExternalProvider = "yandex",
-                ExternalId = "123456"
+                Core = new SongCoreData
+                {
+                    Id = "ext-yandex-song-123456",
+                    Title = "Test Song",
+                    Artist = "Test Artist",
+                    ArtistId = "ext-yandex-artist-123456",
+                    Album = "Test Album",
+                    AlbumId = "ext-yandex-album-123456",
+                    Duration = 15
+                },
+                Server = new SongServerData
+                {
+                    IsLocal = false,
+                    ExternalProvider = "yandex",
+                    ExternalId = "123456"
+                }
             });
 
         var mockResponseModernApi = new HttpResponseMessage
@@ -379,16 +385,22 @@ public class YandexDownloadServiceTests : IDisposable
             .Setup(s => s.GetSongAsync("yandex", "123456"))
             .ReturnsAsync(new Song
             {
-                Id = "ext-yandex-song-123456",
-                Title = "Test Song",
-                Artist = "Test Artist",
-                ArtistId = "ext-yandex-artist-123456",
-                Album = "Test Album",
-                AlbumId = "ext-yandex-album-123456",
-                Duration = 15,
-                IsLocal = false,
-                ExternalProvider = "yandex",
-                ExternalId = "123456"
+                Core = new SongCoreData
+                {
+                    Id = "ext-yandex-song-123456",
+                    Title = "Test Song",
+                    Artist = "Test Artist",
+                    ArtistId = "ext-yandex-artist-123456",
+                    Album = "Test Album",
+                    AlbumId = "ext-yandex-album-123456",
+                    Duration = 15
+                },
+                Server = new SongServerData
+                {
+                    IsLocal = false,
+                    ExternalProvider = "yandex",
+                    ExternalId = "123456"
+                }
             });
 
         var mockResponseModernApi = new HttpResponseMessage
@@ -487,11 +499,17 @@ public class YandexDownloadServiceTests : IDisposable
             .Setup(s => s.GetSongAsync("yandex", "123456"))
             .ReturnsAsync(new Song
             {
-                Id = "ext-yandex-song-123456",
-                Title = "Test Song",
-                IsLocal = false,
-                ExternalProvider = "yandex",
-                ExternalId = "123456"
+                Core = new SongCoreData
+                {
+                    Id = "ext-yandex-song-123456",
+                    Title = "Test Song"
+                },
+                Server = new SongServerData
+                {
+                    IsLocal = false,
+                    ExternalProvider = "yandex",
+                    ExternalId = "123456"
+                }
             });
 
         // Act
@@ -540,11 +558,17 @@ public class YandexDownloadServiceTests : IDisposable
             .Setup(s => s.GetSongAsync("yandex", "123456"))
             .ReturnsAsync(new Song
             {
-                Id = "ext-yandex-song-123456",
-                Title = "Test Song",
-                IsLocal = false,
-                ExternalProvider = "yandex",
-                ExternalId = "123456"
+                Core = new SongCoreData
+                {
+                    Id = "ext-yandex-song-123456",
+                    Title = "Test Song"
+                },
+                Server = new SongServerData
+                {
+                    IsLocal = false,
+                    ExternalProvider = "yandex",
+                    ExternalId = "123456"
+                }
             });
 
         // Act
@@ -594,11 +618,17 @@ public class YandexDownloadServiceTests : IDisposable
             .Setup(s => s.GetSongAsync("yandex", "123456"))
             .ReturnsAsync(new Song
             {
-                Id = "ext-yandex-song-123456",
-                Title = "Test Song",
-                IsLocal = false,
-                ExternalProvider = "yandex",
-                ExternalId = "123456"
+                Core = new SongCoreData
+                {
+                    Id = "ext-yandex-song-123456",
+                    Title = "Test Song"
+                },
+                Server = new SongServerData
+                {
+                    IsLocal = false,
+                    ExternalProvider = "yandex",
+                    ExternalId = "123456"
+                }
             });
 
         // Act
@@ -681,8 +711,14 @@ public class YandexDownloadServiceTests : IDisposable
                 Title = "Test Album",
                 Songs = new List<Song>
                 {
-                    new Song { ExternalId = "111", Title = "Track 1" },
-                    new Song { ExternalId = "222", Title = "Track 2" }
+                    new Song {
+                        Core = new SongCoreData { Title = "Track 1" },
+                        Server = new SongServerData { ExternalId = "111" }
+                    },
+                    new Song {
+                        Core = new SongCoreData { Title = "Track 2" },
+                        Server = new SongServerData { ExternalId = "222" }
+                    }
                 }
             });
 

@@ -93,7 +93,7 @@ public class YandexDownloadService : BaseDownloadService
             return downloadResult;
         }
         _logger.LogWarning(
-            "Track '{TrackId}: {Title}' Downloading using modern API failed. Trying legacy API.", trackId, song.Title
+            "Track '{TrackId}: {Title}' Downloading using modern API failed. Trying legacy API.", trackId, song.Core.Title
         );
 
 
@@ -103,7 +103,7 @@ public class YandexDownloadService : BaseDownloadService
             return downloadResult;
         }
         throw new Exception(
-            $"Track  '{trackId}: {song.Title}' downloading failed using both modern and legacy APIs."
+            $"Track  '{trackId}: {song.Core.Title}' downloading failed using both modern and legacy APIs."
         );
     }
 

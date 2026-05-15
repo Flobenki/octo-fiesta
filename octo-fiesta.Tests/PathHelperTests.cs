@@ -29,7 +29,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_DefaultTemplate_MatchesLegacyBehavior()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Everything in Its Right Place",
             Artist = "Radiohead",
@@ -45,7 +45,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_DefaultTemplate_UsesAlbumArtistWhenAvailable()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "My Song",
             Artist = "Track Artist",
@@ -62,7 +62,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_CustomTemplate_WithYearAndQuality()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Idioteque",
             Artist = "Radiohead",
@@ -80,7 +80,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_CustomTemplate_WithDiscNumber()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "My Song",
             Artist = "Artist",
@@ -98,7 +98,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_CustomTemplate_WithGenre()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
@@ -116,7 +116,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_NullYear_ReplacesWithUnknown()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
@@ -134,7 +134,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_NullGenre_ReplacesWithUnknown()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
@@ -152,7 +152,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_NullQuality_ReplacesWithUnknown()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
@@ -169,7 +169,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_NullDiscNumber_ReplacesWithUnknown()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
@@ -187,7 +187,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_NoTrackNumber_CleansUpDashPrefix()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
@@ -204,7 +204,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_FlatTemplate_NoFolderSegments()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
@@ -221,7 +221,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_SpecialCharactersInMetadata_Sanitized()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "What's My Age Again?",
             Artist = "AC/DC",
@@ -240,7 +240,7 @@ public class PathHelperTests : IDisposable
     [Fact]
     public void BuildTrackPath_AllPlaceholders_AllResolved()
     {
-        var song = new Song
+        var song = new SongCoreData
         {
             Title = "Song",
             Artist = "Artist",
